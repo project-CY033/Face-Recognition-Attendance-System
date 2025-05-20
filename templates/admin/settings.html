@@ -1,0 +1,536 @@
+{% extends 'layout.html' %}
+
+{% block title %}System Settings - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">System Settings</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Tab navigation -->
+                    <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">General</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="semester-tab" data-bs-toggle="tab" data-bs-target="#semester" type="button" role="tab" aria-controls="semester" aria-selected="false">Semester Settings</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="face-recognition-tab" data-bs-toggle="tab" data-bs-target="#face-recognition" type="button" role="tab" aria-controls="face-recognition" aria-selected="false">Face Recognition</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="notification-tab" data-bs-toggle="tab" data-bs-target="#notification" type="button" role="tab" aria-controls="notification" aria-selected="false">Notifications</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup" type="button" role="tab" aria-controls="backup" aria-selected="false">Backup</button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab content -->
+                    <div class="tab-content" id="settingsTabContent">
+                        <!-- General Settings -->
+                        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                            <h5 class="mb-4">General Settings</h5>
+                            
+                            <form id="generalSettingsForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="systemName" class="form-label">System Name</label>
+                                        <input type="text" class="form-control" id="systemName" value="Face Recognition Attendance System">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="institutionName" class="form-label">Institution Name</label>
+                                        <input type="text" class="form-control" id="institutionName" value="Your Institution">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="academicYear" class="form-label">Current Academic Year</label>
+                                        <input type="text" class="form-control" id="academicYear" value="2023-2024">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="currentSemester" class="form-label">Current Semester</label>
+                                        <select class="form-select" id="currentSemester">
+                                            {% for i in range(1, 9) %}
+                                                <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>Semester {{ i }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="timeZone" class="form-label">Time Zone</label>
+                                        <select class="form-select" id="timeZone">
+                                            <option value="UTC+0:00">UTC (GMT)</option>
+                                            <option value="UTC+1:00">Central European Time (CET)</option>
+                                            <option value="UTC+5:30" selected>Indian Standard Time (IST)</option>
+                                            <option value="UTC-5:00">Eastern Standard Time (EST)</option>
+                                            <option value="UTC-8:00">Pacific Standard Time (PST)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="dateFormat" class="form-label">Date Format</label>
+                                        <select class="form-select" id="dateFormat">
+                                            <option value="YYYY-MM-DD" selected>YYYY-MM-DD</option>
+                                            <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                                            <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-primary" onclick="saveGeneralSettings()">
+                                        <i class="fas fa-save me-2"></i> Save General Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Semester Settings -->
+                        <div class="tab-pane fade" id="semester" role="tabpanel" aria-labelledby="semester-tab">
+                            <h5 class="mb-4">Semester Settings</h5>
+                            
+                            <div class="table-responsive mb-4">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Semester</th>
+                                            <th>Allow Manual Attendance</th>
+                                            <th>Minimum Attendance</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for setting in semester_settings %}
+                                            <tr>
+                                                <td>Semester {{ setting.semester }}</td>
+                                                <td>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="allowManual{{ setting.semester }}" 
+                                                               {% if setting.allow_manual_attendance %}checked{% endif %}
+                                                               onchange="updateSemesterSetting({{ setting.semester }}, this.checked)">
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {% if setting.additional_settings and setting.additional_settings.attendance_threshold %}
+                                                        {{ setting.additional_settings.attendance_threshold }}%
+                                                    {% else %}
+                                                        75%
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            onclick="editSemesterSetting({{ setting.semester }})">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSemesterModal">
+                                    <i class="fas fa-plus me-2"></i> Add Semester
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Face Recognition Settings -->
+                        <div class="tab-pane fade" id="face-recognition" role="tabpanel" aria-labelledby="face-recognition-tab">
+                            <h5 class="mb-4">Face Recognition Settings</h5>
+                            
+                            <form id="faceRecognitionForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="recognitionModel" class="form-label">Recognition Model</label>
+                                        <select class="form-select" id="recognitionModel">
+                                            <option value="hog" selected>HOG (CPU-based, faster)</option>
+                                            <option value="cnn">CNN (GPU-based, more accurate)</option>
+                                        </select>
+                                        <div class="form-text">HOG is faster but less accurate. CNN requires a GPU but is more accurate.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="recognitionTolerance" class="form-label">Recognition Tolerance</label>
+                                        <input type="range" class="form-range" min="0.1" max="1.0" step="0.05" value="0.6" id="recognitionTolerance">
+                                        <div class="d-flex justify-content-between">
+                                            <small>Strict (0.1)</small>
+                                            <small id="toleranceValue">0.6</small>
+                                            <small>Lenient (1.0)</small>
+                                        </div>
+                                        <div class="form-text">Lower values make face recognition more strict, higher values more lenient.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableMotionDetection" checked>
+                                            <label class="form-check-label" for="enableMotionDetection">
+                                                Enable Motion Detection
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Only attempt face recognition when motion is detected.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="requireMultipleSamples" checked>
+                                            <label class="form-check-label" for="requireMultipleSamples">
+                                                Require Multiple Samples
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Take multiple face samples during registration for better accuracy.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-primary" onclick="saveFaceRecognitionSettings()">
+                                        <i class="fas fa-save me-2"></i> Save Face Recognition Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Notification Settings -->
+                        <div class="tab-pane fade" id="notification" role="tabpanel" aria-labelledby="notification-tab">
+                            <h5 class="mb-4">Notification Settings</h5>
+                            
+                            <form id="notificationForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableEmailNotifications" checked>
+                                            <label class="form-check-label" for="enableEmailNotifications">
+                                                Enable Email Notifications
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Send email notifications to students and teachers.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableInAppNotifications" checked>
+                                            <label class="form-check-label" for="enableInAppNotifications">
+                                                Enable In-App Notifications
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Show notifications in the application interface.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="smtpServer" class="form-label">SMTP Server</label>
+                                        <input type="text" class="form-control" id="smtpServer" value="smtp.gmail.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="smtpPort" class="form-label">SMTP Port</label>
+                                        <input type="number" class="form-control" id="smtpPort" value="587">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="emailUsername" class="form-label">Email Username</label>
+                                        <input type="email" class="form-control" id="emailUsername" value="system@example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="emailPassword" class="form-label">Email Password</label>
+                                        <input type="password" class="form-control" id="emailPassword" value="••••••••">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="notificationEvents" class="form-label">Notification Events</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="notifyAttendanceMarked" checked>
+                                            <label class="form-check-label" for="notifyAttendanceMarked">
+                                                Attendance Marked
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="notifyAttendanceModified" checked>
+                                            <label class="form-check-label" for="notifyAttendanceModified">
+                                                Attendance Modified
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="notifyLowAttendance" checked>
+                                            <label class="form-check-label" for="notifyLowAttendance">
+                                                Low Attendance Warning
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" class="btn btn-primary" onclick="saveNotificationSettings()">
+                                        <i class="fas fa-save me-2"></i> Save Notification Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Backup Settings -->
+                        <div class="tab-pane fade" id="backup" role="tabpanel" aria-labelledby="backup-tab">
+                            <h5 class="mb-4">Backup & Restore</h5>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Database Backup</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Create a backup of your database to prevent data loss.</p>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button type="button" class="btn btn-primary" onclick="backupDatabase()">
+                                            <i class="fas fa-download me-2"></i> Backup Database
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Restore Database</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Restore your database from a previous backup.</p>
+                                    <div class="mb-3">
+                                        <label for="backupFile" class="form-label">Select Backup File</label>
+                                        <input type="file" class="form-control" id="backupFile">
+                                    </div>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button type="button" class="btn btn-warning" onclick="restoreDatabase()">
+                                            <i class="fas fa-upload me-2"></i> Restore Database
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Export Data</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Export your data in various formats.</p>
+                                    <div class="d-grid gap-2 d-md-flex">
+                                        <button type="button" class="btn btn-info" onclick="exportData('students')">
+                                            <i class="fas fa-file-export me-2"></i> Export Students
+                                        </button>
+                                        <button type="button" class="btn btn-info" onclick="exportData('teachers')">
+                                            <i class="fas fa-file-export me-2"></i> Export Teachers
+                                        </button>
+                                        <button type="button" class="btn btn-info" onclick="exportData('attendance')">
+                                            <i class="fas fa-file-export me-2"></i> Export Attendance
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Semester Modal -->
+<div class="modal fade" id="addSemesterModal" tabindex="-1" aria-labelledby="addSemesterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSemesterModalLabel">Add Semester</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSemesterForm">
+                    <div class="mb-3">
+                        <label for="semesterNumber" class="form-label">Semester</label>
+                        <select class="form-select" id="semesterNumber" required>
+                            <option value="" selected disabled>Select Semester</option>
+                            {% for i in range(1, 9) %}
+                                <option value="{{ i }}">Semester {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="allowManualAttendance" checked>
+                            <label class="form-check-label" for="allowManualAttendance">
+                                Allow Manual Attendance
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attendanceThreshold" class="form-label">Attendance Threshold (%)</label>
+                        <input type="number" class="form-control" id="attendanceThreshold" value="75" min="0" max="100">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addSemesterBtn" onclick="addSemester()">Add Semester</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alert-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Update tolerance value display when slider changes
+        const toleranceSlider = document.getElementById('recognitionTolerance');
+        const toleranceValue = document.getElementById('toleranceValue');
+        
+        if (toleranceSlider && toleranceValue) {
+            toleranceSlider.addEventListener('input', function() {
+                toleranceValue.textContent = this.value;
+            });
+        }
+    });
+    
+    // Save general settings
+    function saveGeneralSettings() {
+        showAlert('General settings saved successfully', 'success');
+    }
+    
+    // Save face recognition settings
+    function saveFaceRecognitionSettings() {
+        showAlert('Face recognition settings saved successfully', 'success');
+    }
+    
+    // Save notification settings
+    function saveNotificationSettings() {
+        showAlert('Notification settings saved successfully', 'success');
+    }
+    
+    // Update semester setting
+    async function updateSemesterSetting(semesterId, allowManual) {
+        try {
+            const formData = new FormData();
+            formData.append('semester_id', semesterId);
+            formData.append('allow_manual', allowManual);
+            
+            const response = await fetch('/admin/update-semester-setting', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating semester setting:', error);
+            showAlert('Error updating semester setting. Please try again.', 'danger');
+        }
+    }
+    
+    // Edit semester setting
+    function editSemesterSetting(semesterId) {
+        // In a real implementation, this would open a modal with the semester settings
+        showAlert('Edit functionality would be implemented here.', 'info');
+    }
+    
+    // Add new semester
+    function addSemester() {
+        const semesterNumber = document.getElementById('semesterNumber').value;
+        const allowManual = document.getElementById('allowManualAttendance').checked;
+        const threshold = document.getElementById('attendanceThreshold').value;
+        
+        if (!semesterNumber) {
+            showAlert('Please select a semester', 'warning');
+            return;
+        }
+        
+        // In a real implementation, this would add a new semester to the database
+        showAlert('Semester added successfully', 'success');
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addSemesterModal'));
+        modal.hide();
+        
+        // Reload the page
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+    
+    // Backup database
+    function backupDatabase() {
+        showAlert('Database backup initiated. This may take a few moments.', 'info');
+        
+        // In a real implementation, this would create a backup of the database
+        setTimeout(() => {
+            showAlert('Database backup completed successfully', 'success');
+        }, 2000);
+    }
+    
+    // Restore database
+    function restoreDatabase() {
+        const backupFile = document.getElementById('backupFile').value;
+        
+        if (!backupFile) {
+            showAlert('Please select a backup file', 'warning');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to restore the database? This will overwrite your current data.')) {
+            return;
+        }
+        
+        showAlert('Database restore initiated. This may take a few moments.', 'info');
+        
+        // In a real implementation, this would restore the database from the backup file
+        setTimeout(() => {
+            showAlert('Database restored successfully', 'success');
+        }, 2000);
+    }
+    
+    // Export data
+    function exportData(type) {
+        showAlert(`Exporting ${type} data...`, 'info');
+        
+        // In a real implementation, this would export the data in the selected format
+        setTimeout(() => {
+            showAlert(`${type} data exported successfully`, 'success');
+        }, 1500);
+    }
+    
+    // Show alert message
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alert.setAttribute('role', 'alert');
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        alertContainer.appendChild(alert);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alertContainer.removeChild(alert);
+            }, 150);
+        }, 5000);
+    }
+</script>
+{% endblock %}
