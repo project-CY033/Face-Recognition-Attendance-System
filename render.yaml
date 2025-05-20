@@ -1,0 +1,12 @@
+services:
+  # Web service
+  - type: web
+    name: face-recognition-attendance
+    env: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --reuse-port main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.6
+      - key: PORT
+        value: 10000
