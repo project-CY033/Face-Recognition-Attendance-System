@@ -1,0 +1,188 @@
+/* Custom styles for the attendance system */
+
+/* Common styles */
+.face-capture-container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.face-capture-container video,
+.face-capture-container canvas {
+    width: 100%;
+    height: auto;
+    background-color: #000;
+    border-radius: 8px;
+}
+
+.face-detection-box {
+    position: absolute;
+    border: 3px solid #00ff00;
+    box-sizing: border-box;
+}
+
+.capture-btn {
+    margin-top: 15px;
+    display: block;
+    width: 100%;
+}
+
+/* Dashboard cards */
+.dashboard-card {
+    transition: transform 0.3s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+.avatar-container {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 50%;
+    border: 3px solid var(--bs-primary);
+}
+
+.attendance-progress {
+    height: 10px;
+    margin-bottom: 15px;
+}
+
+/* Attendance table styles */
+.attendance-table th {
+    position: sticky;
+    top: 0;
+    background-color: var(--bs-dark);
+    z-index: 10;
+}
+
+.attendance-calendar td.present {
+    background-color: rgba(40, 167, 69, 0.2);
+}
+
+.attendance-calendar td.absent {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Profile sections */
+.profile-section {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+}
+
+/* Notification styles */
+.notification-item {
+    transition: background-color 0.3s;
+    border-left: 4px solid transparent;
+}
+
+.notification-item.unread {
+    border-left-color: var(--bs-primary);
+}
+
+.notification-item:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Student list styles */
+.student-list-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.student-list-item:last-child {
+    border-bottom: none;
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--bs-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hero section for landing page */
+.hero-section {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                url('https://pixabay.com/get/g9e5d4d10bf07c08ddc1e2027360336bfff74cafe27bd65bb68d474aeff6114139fd84bc143146600626622091dd27e500039ce9630b7fb2f7bddb06052d9068b_1280.jpg') center/cover no-repeat;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+}
+
+.feature-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: var(--bs-primary);
+}
+
+/* Teacher semester page */
+.semester-card {
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.semester-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Admin dashboard */
+.admin-stat-card {
+    border-left: 5px solid var(--bs-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .avatar-container {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .hero-section {
+        height: 350px;
+    }
+}
