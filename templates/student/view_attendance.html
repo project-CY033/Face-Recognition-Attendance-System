@@ -1,0 +1,330 @@
+{% extends 'layout.html' %}
+
+{% block title %}View Attendance - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Attendance Records</h4>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterOptions">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="collapse" id="filterOptions">
+                    <div class="card-body border-bottom">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label for="subjectFilter" class="form-label">Subject</label>
+                                <select class="form-select" id="subjectFilter" data-filter-target="#attendanceTable" data-filter-name="subject">
+                                    <option value="all" selected>All Subjects</option>
+                                    {% for subject in subjects %}
+                                        <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4 mb-2">
+                                <label for="markedByFilter" class="form-label">Marked By</label>
+                                <select class="form-select" id="markedByFilter" data-filter-target="#attendanceTable" data-filter-name="marked-by">
+                                    <option value="all" selected>All Methods</option>
+                                    <option value="face">Face Recognition</option>
+                                    <option value="manual">Manual</option>
+                                    <option value="teacher">Teacher</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4 mb-2">
+                                <label for="search-input" class="form-label">Search</label>
+                                <input type="text" class="form-control" id="search-input" data-table-target="#attendanceTable" placeholder="Search...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    {% if subjects %}
+                        <ul class="nav nav-tabs mb-4" id="attendanceTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-attendance" type="button" role="tab" aria-controls="all-attendance" aria-selected="true">All</button>
+                            </li>
+                            {% for subject in subjects %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="subject-{{ subject.id }}-tab" data-bs-toggle="tab" data-bs-target="#subject-{{ subject.id }}" type="button" role="tab" aria-controls="subject-{{ subject.id }}" aria-selected="false">{{ subject.name }}</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        
+                        <div class="tab-content" id="attendanceTabContent">
+                            <!-- All Attendance Tab -->
+                            <div class="tab-pane fade show active" id="all-attendance" role="tabpanel" aria-labelledby="all-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Subject</th>
+                                                <th>Time</th>
+                                                <th>Marked By</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="attendanceTable">
+                                            {% set all_attendance = [] %}
+                                            {% for subject in subjects %}
+                                                {% for attendance in attendance_by_subject.get(subject.id, []) %}
+                                                    {% set _ = all_attendance.append((attendance, subject)) %}
+                                                {% endfor %}
+                                            {% endfor %}
+                                            
+                                            {% if all_attendance %}
+                                                {% for attendance, subject in all_attendance|sort(attribute='0.date', reverse=True) %}
+                                                    <tr data-subject="{{ subject.id }}" data-marked-by="{{ attendance.marked_by }}">
+                                                        <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                                        <td>{{ subject.name }}</td>
+                                                        <td>{{ attendance.time.strftime('%H:%M') }}</td>
+                                                        <td>
+                                                            {% if attendance.marked_by == 'face' %}
+                                                                <span class="badge bg-primary">Face Recognition</span>
+                                                            {% elif attendance.marked_by == 'manual' %}
+                                                                <span class="badge bg-secondary">Manual</span>
+                                                            {% elif attendance.marked_by == 'teacher' %}
+                                                                <span class="badge bg-success">Teacher</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            {% if attendance.modified_by_teacher %}
+                                                                <span class="badge bg-warning" data-bs-toggle="tooltip" title="{{ attendance.modification_note }}">
+                                                                    <i class="fas fa-edit me-1"></i> Modified
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="badge bg-success">Recorded</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="5" class="text-center">No attendance records found.</td>
+                                                </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Individual Subject Tabs -->
+                            {% for subject in subjects %}
+                                <div class="tab-pane fade" id="subject-{{ subject.id }}" role="tabpanel" aria-labelledby="subject-{{ subject.id }}-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Marked By</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% set subject_attendance = attendance_by_subject.get(subject.id, []) %}
+                                                
+                                                {% if subject_attendance %}
+                                                    {% for attendance in subject_attendance|sort(attribute='date', reverse=True) %}
+                                                        <tr>
+                                                            <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                                            <td>{{ attendance.time.strftime('%H:%M') }}</td>
+                                                            <td>
+                                                                {% if attendance.marked_by == 'face' %}
+                                                                    <span class="badge bg-primary">Face Recognition</span>
+                                                                {% elif attendance.marked_by == 'manual' %}
+                                                                    <span class="badge bg-secondary">Manual</span>
+                                                                {% elif attendance.marked_by == 'teacher' %}
+                                                                    <span class="badge bg-success">Teacher</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if attendance.modified_by_teacher %}
+                                                                    <span class="badge bg-warning" data-bs-toggle="tooltip" title="{{ attendance.modification_note }}">
+                                                                        <i class="fas fa-edit me-1"></i> Modified
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="badge bg-success">Recorded</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <tr>
+                                                        <td colspan="4" class="text-center">No attendance records found for this subject.</td>
+                                                    </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No subjects are assigned for your semester yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Check Attendance by Roll Number</h4>
+                </div>
+                <div class="card-body">
+                    <form id="checkAttendanceForm" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="roll_number_check" placeholder="Enter Your Roll Number" value="{{ student.roll_number }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">Check Attendance</button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="attendanceResult" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Check attendance by roll number
+        const checkAttendanceForm = document.getElementById('checkAttendanceForm');
+        const attendanceResult = document.getElementById('attendanceResult');
+        
+        checkAttendanceForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const rollNumber = document.getElementById('roll_number_check').value;
+            if (!rollNumber) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('roll_number', rollNumber);
+                
+                const response = await fetch('/student/check-attendance', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = `
+                        <div class="alert alert-success mb-4">
+                            <h5>Student Information</h5>
+                            <p><strong>Name:</strong> ${data.student.name}</p>
+                            <p><strong>Roll Number:</strong> ${data.student.roll_number}</p>
+                            <p><strong>Year:</strong> ${data.student.year}</p>
+                            <p><strong>Semester:</strong> ${data.student.semester}</p>
+                        </div>
+                    `;
+                    
+                    html += '<h5>Attendance Records</h5>';
+                    
+                    let hasAttendance = false;
+                    for (const subject in data.attendance) {
+                        const records = data.attendance[subject];
+                        if (records.length > 0) {
+                            hasAttendance = true;
+                            html += `
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">${subject}</h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Time</th>
+                                                        <th>Method</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                            `;
+                            
+                            records.forEach(record => {
+                                html += `
+                                    <tr>
+                                        <td>${record.date}</td>
+                                        <td>${record.time}</td>
+                                        <td>${record.marked_by}</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            html += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    if (!hasAttendance) {
+                        html += `
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No attendance records found.
+                            </div>
+                        `;
+                    }
+                    
+                    attendanceResult.innerHTML = html;
+                    attendanceResult.style.display = 'block';
+                } else {
+                    attendanceResult.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${data.message}
+                        </div>
+                    `;
+                    attendanceResult.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking attendance:', error);
+                attendanceResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error checking attendance. Please try again.
+                    </div>
+                `;
+                attendanceResult.style.display = 'block';
+            }
+        });
+    });
+</script>
+{% endblock %}

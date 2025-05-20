@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+
+{% block title %}Manual Attendance - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0">Manual Attendance</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if semester_setting and semester_setting.allow_manual_attendance %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Please fill in your details to mark attendance manually.
+                        </div>
+                        
+                        <form method="POST" action="{{ url_for('student.mark_manual_attendance') }}">
+                            <div class="mb-3">
+                                <label for="roll_number" class="form-label">Roll Number</label>
+                                <input type="text" class="form-control" id="roll_number" name="roll_number" value="{{ student.roll_number }}" required>
+                                <div class="form-text">Please enter your college roll number for verification.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="subject_id" class="form-label">Select Subject</label>
+                                <select class="form-select" id="subject_id" name="subject_id" required>
+                                    <option value="" selected disabled>-- Select Subject --</option>
+                                    {% for subject in subjects %}
+                                        <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Today's Date</label>
+                                <input type="text" class="form-control" value="{{ now().strftime('%Y-%m-%d') }}" readonly>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Submit Attendance</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Manual attendance marking is not allowed for your semester. Please use face recognition to mark your attendance.
+                        </div>
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('student.mark_attendance') }}" class="btn btn-primary">
+                                <i class="fas fa-camera me-2"></i> Mark Attendance with Face Recognition
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Helper function for Flask's jinja2 templates
+    function now() {
+        return new Date();
+    }
+</script>
+{% endblock %}
