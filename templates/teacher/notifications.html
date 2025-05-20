@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+
+{% block title %}Notifications - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Notifications</h4>
+                    <button class="btn btn-sm btn-outline-danger" id="markAllReadBtn">
+                        <i class="fas fa-check-double me-1"></i> Mark All as Read
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if notifications %}
+                            {% for notification in notifications %}
+                                <div class="list-group-item notification-item {% if not notification.read %}unread{% endif %}" data-notification-id="{{ notification.id }}">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">
+                                            {% if not notification.read %}
+                                                <span class="badge bg-primary me-2">New</span>
+                                            {% endif %}
+                                            Notification
+                                        </h6>
+                                        <small>{{ notification.created_at.strftime('%d %b %Y, %H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item py-5 text-center">
+                                <i class="fas fa-bell-slash fa-3x mb-3 text-muted"></i>
+                                <p class="mb-0">You have no notifications</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if notifications %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Click on a notification to mark it as read
+                            </small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setupNotificationHandlers();
+        
+        // Mark all as read button
+        const markAllReadBtn = document.getElementById('markAllReadBtn');
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/teacher/mark-all-notifications-read', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        // Update UI
+                        document.querySelectorAll('.notification-item.unread').forEach(item => {
+                            item.classList.remove('unread');
+                        });
+                        
+                        // Hide "New" badges
+                        document.querySelectorAll('.notification-item .badge').forEach(badge => {
+                            badge.style.display = 'none';
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error marking all notifications as read:', error);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

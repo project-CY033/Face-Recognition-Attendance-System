@@ -1,0 +1,225 @@
+{% extends 'layout.html' %}
+
+{% block title %}Teacher Dashboard - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            <div class="avatar-container mb-3 mb-md-0">
+                                <i class="fas fa-user-tie fa-7x"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-10">
+                            <h2>Welcome, {{ teacher.full_name }}</h2>
+                            <p class="lead mb-0">Teacher ID: {{ teacher.id }} | Phone: {{ teacher.mobile_number or 'Not provided' }}</p>
+                            <div class="mt-3">
+                                <a href="{{ url_for('teacher.register_details') }}" class="btn btn-primary me-2">
+                                    <i class="fas fa-edit me-2"></i> Update Profile
+                                </a>
+                                <a href="{{ url_for('teacher.notifications') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-bell me-2"></i> Notifications
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assigned Semesters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Assigned Semesters</h5>
+                </div>
+                <div class="card-body">
+                    {% if semesters %}
+                        <div class="row g-4">
+                            {% for semester in semesters %}
+                                <div class="col-md-4">
+                                    <div class="card semester-card h-100" onclick="window.location.href='{{ url_for('teacher.semester_page', semester_id=semester) }}'">
+                                        <div class="card-body text-center p-4">
+                                            <div class="display-1 mb-3">{{ semester }}</div>
+                                            <h4 class="card-title">Semester {{ semester }}</h4>
+                                            <p class="text-muted">
+                                                {% set semester_subjects = [] %}
+                                                {% for s in subjects %}
+                                                    {% if s.semester == semester %}
+                                                        {% set semester_subjects = semester_subjects + [s] %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {{ semester_subjects|length }} Subjects
+                                            </p>
+                                            <div class="d-grid mt-3">
+                                                <a href="{{ url_for('teacher.semester_page', semester_id=semester) }}" class="btn btn-primary">Manage Semester</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You haven't been assigned to any semesters yet. Please update your profile to select semesters and subjects.
+                        </div>
+                        <div class="text-center">
+                            <a href="{{ url_for('teacher.register_details') }}" class="btn btn-primary">
+                                <i class="fas fa-edit me-2"></i> Update Profile
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Attendance Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Subject</th>
+                                    <th>Time</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_attendance %}
+                                    {% for attendance in recent_attendance %}
+                                        <tr>
+                                            <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ attendance.student.full_name }}</td>
+                                            <td>{{ attendance.subject.name }}</td>
+                                            <td>{{ attendance.time.strftime('%H:%M') }}</td>
+                                            <td>
+                                                {% if attendance.marked_by == 'face' %}
+                                                    <span class="badge bg-primary">Face Recognition</span>
+                                                {% elif attendance.marked_by == 'manual' %}
+                                                    <span class="badge bg-secondary">Manual</span>
+                                                {% elif attendance.marked_by == 'teacher' %}
+                                                    <span class="badge bg-success">Teacher</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">No recent attendance activity.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">My Subjects</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if teacher_subjects %}
+                            {% for ts in teacher_subjects %}
+                                <a href="{{ url_for('teacher.attendance_entry', subject_id=ts.subject.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ ts.subject.name }}</h6>
+                                        <small>Semester {{ ts.subject.semester }}</small>
+                                    </div>
+                                    <div>
+                                        {% if ts.class_time %}
+                                            <span class="badge bg-info">{{ ts.class_time }}</span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item text-center py-4">
+                                <i class="fas fa-book fa-2x mb-3 text-muted"></i>
+                                <p class="mb-0">No subjects assigned yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if labs %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">My Labs</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for lab in labs %}
+                                <div class="list-group-item">
+                                    <h6 class="mb-1">{{ lab.subject_name }}</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <small>Semester {{ lab.semester }}</small>
+                                        <small class="text-primary">{{ lab.lab_time }}</small>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="badge bg-secondary me-1">{{ lab.days }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if teacher_subjects %}
+                            {% for ts in teacher_subjects %}
+                                <div class="col-md-3">
+                                    <div class="d-grid">
+                                        <a href="{{ url_for('teacher.attendance_entry', subject_id=ts.subject.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-clipboard-list me-2"></i> {{ ts.subject.name }} Attendance
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No subjects assigned yet. Please update your profile to add subjects.
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
