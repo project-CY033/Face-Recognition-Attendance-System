@@ -3,7 +3,8 @@ import os
 class Config:
     # Supabase Configuration
     SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://itcrspdirsdokehaspvb.supabase.co")
-    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0Y3JzcGRpcnNkb2tlaGFzcHZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwMjIyNzcsImV4cCI6MjA2MjU5ODI3N30.lOETEfUh3MDgR8Nq4106hfAKO-dd7Jxsar-Rlknqi60")
+  # SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0Y3JzcGRpcnNkb2tlaGFzcHZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwMjIyNzcsImV4cCI6MjA2MjU5ODI3N30.lOETEfUh3MDgR8Nq4106hfAKO-dd7Jxsar-Rlknqi60")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "enter_anon_public")
     
     # Flask Configuration
     SECRET_KEY = os.environ.get("SESSION_SECRET", "dev_secret_key")
