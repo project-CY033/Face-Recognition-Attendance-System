@@ -1,1 +1,18 @@
+Assistant checkpoint: Remove file upload, add semester/subject selection
 
+Assistant generated file changes:
+- templates/student_register.html: Remove file upload section and add semester/subject selection, Add semester and subject selection to academic information, Update JavaScript to handle semester/subject selection and remove file upload, Remove file upload handler function, Update form validation to include semester and subject, remove photo file check
+- models.py: Add semester and subject fields to Student model
+- app.py: Update student registration to handle semester/subject and remove file upload, Remove file upload handling and update student creation, Update student creation with new fields, Update student edit functionality with new fields
+- templates/edit_student.html: Add semester and subject fields to edit form
+
+---
+
+User prompt:
+
+remove Upload Photo File
+
+and  in Academic Information add select semester  after select semester show  to select subject accounting  to ther selected semester and the total semester 8 and each seneter have 5 subject
+
+Replit-Commit-Author: Assistant
+Replit-Commit-Session-Id: 54ca03c4-bc76-4ce7-9135-0d773e5aee6f
