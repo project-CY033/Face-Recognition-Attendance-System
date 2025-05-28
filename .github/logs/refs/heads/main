@@ -1,1 +1,5 @@
-
+0000000000000000000000000000000000000000 fd39a21afb6f4e8433ddade8ddea2a3723bd6497 Atha Smith <43227984-floter@users.noreply.replit.com> 1748443294 +0000	branch: Created from origin/main
+fd39a21afb6f4e8433ddade8ddea2a3723bd6497 f0349daf031e82d0e222d633fd6dd63bdaf6283a floter <43227984-floter@users.noreply.replit.com> 1748443811 +0000	commit: Checkpoint before assistant change: Configure the application environment for deployment and execution
+f0349daf031e82d0e222d633fd6dd63bdaf6283a 26412b8e8399b2dea47f9b7e9db39a0fbe3c1cf2 Atha Smith <43227984-floter@users.noreply.replit.com> 1748444043 +0000	commit: Assistant checkpoint: Enhanced face recognition system with advanced features
+26412b8e8399b2dea47f9b7e9db39a0fbe3c1cf2 a0ba54b6ebe744bd1514da1ae6f4418413cd8a19 floter <43227984-floter@users.noreply.replit.com> 1748444240 +0000	commit: Checkpoint before assistant change: Configure the application to run the attendance system when opened
+a0ba54b6ebe744bd1514da1ae6f4418413cd8a19 03a9ee79e42ab88cbebe84b5730be5418b4910fe Atha Smith <43227984-floter@users.noreply.replit.com> 1748444390 +0000	commit: Assistant checkpoint: Remove file upload, add semester/subject selection
