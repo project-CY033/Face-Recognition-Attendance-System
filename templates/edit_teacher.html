@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Teacher - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="p-6 md:p-8 text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4">
+                        <i class="fas fa-chalkboard-teacher text-white text-2xl"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                        Edit Teacher Information
+                    </h1>
+                    <p class="text-green-100 text-lg">
+                        Update teacher details and information
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <form method="POST" id="editTeacherForm" class="p-6 md:p-8">
+                <!-- Teacher Information Section -->
+                <div class="mb-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-chalkboard-teacher text-green-600"></i>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Teacher Information</h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Teacher ID (Read Only) -->
+                        <div>
+                            <label for="teacher_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Teacher ID
+                            </label>
+                            <input type="text" id="teacher_id" name="teacher_id" 
+                                   value="{{ teacher.teacher_id }}" readonly
+                                   class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed">
+                            <p class="mt-1 text-sm text-gray-500">Teacher ID cannot be changed</p>
+                        </div>
+                        
+                        <!-- Teacher Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Teacher Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="name" name="name" 
+                                   value="{{ teacher.name }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200">
+                        </div>
+                        
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Email Address <span class="text-red-500">*</span>
+                            </label>
+                            <input type="email" id="email" name="email" 
+                                   value="{{ teacher.email }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200">
+                        </div>
+                        
+                        <!-- Department -->
+                        <div>
+                            <label for="department" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Department <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="department" name="department" 
+                                   value="{{ teacher.department }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200">
+                        </div>
+                        
+                        <!-- Subject -->
+                        <div>
+                            <label for="subject" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Subject <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="subject" name="subject" 
+                                   value="{{ teacher.subject }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200">
+                        </div>
+                        
+                        <!-- System ID (Read Only) -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                System ID
+                            </label>
+                            <input type="text" value="{{ teacher.id }}" readonly
+                                   class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed">
+                            <p class="mt-1 text-sm text-gray-500">System generated ID</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="mb-8">
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-green-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-semibold text-green-800">Teacher Information</h3>
+                                <div class="mt-2 text-sm text-green-700 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-calendar mr-2"></i>
+                                        <span>Registered: {{ teacher.created_at.strftime('%Y-%m-%d %H:%M:%S') if teacher.created_at else 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        <span>Face Encoding: {{ 'Available' if teacher.face_encoding else 'Not Available' }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-image mr-2"></i>
+                                        <span>Photo: {{ 'Uploaded' if teacher.photo_path else 'Not Uploaded' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button type="submit" 
+                            class="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        Update Teacher
+                    </button>
+                    <a href="{{ url_for('database_viewer') }}" 
+                       class="inline-flex items-center justify-center border-2 border-gray-400 text-gray-700 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Database
+                    </a>
+                    <button type="button" onclick="deleteCurrentTeacher()"
+                            class="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-trash mr-2"></i>
+                        Delete Teacher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-3"></i>
+                    Confirm Delete
+                </h3>
+                <button onclick="closeDeleteModal()" class="text-white hover:text-red-200 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-700 mb-4">क्या आप इस teacher को permanently delete करना चाहते हैं?</p>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <div class="text-sm text-yellow-700 space-y-1">
+                            <div><strong>Teacher:</strong> {{ teacher.name }}</div>
+                            <div><strong>Teacher ID:</strong> {{ teacher.teacher_id }}</div>
+                            <div><strong>Department:</strong> {{ teacher.department }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-semibold text-red-800">यह action undo नहीं हो सकता!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="closeDeleteModal()" 
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-trash mr-2"></i>Delete Teacher
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function deleteCurrentTeacher() {
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function confirmDelete() {
+    const teacherId = {{ teacher.id }};
+    
+    fetch(`/delete_teacher/${teacherId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage(data.message);
+            setTimeout(() => {
+                window.location.href = '{{ url_for("database_viewer") }}';
+            }, 1500);
+        } else {
+            showErrorMessage('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showErrorMessage('Error deleting teacher: ' + error.message);
+    });
+}
+
+// Modern alert functions
+function showSuccessMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    setTimeout(() => {
+        alertDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(alertDiv);
+        }, 300);
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    setTimeout(() => {
+        alertDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(alertDiv);
+        }, 300);
+    }, 3000);
+}
+</script>
+{% endblock %}

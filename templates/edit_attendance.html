@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Attendance - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="p-6 md:p-8 text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4">
+                        <i class="fas fa-edit text-white text-2xl"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                        Edit Attendance Record
+                    </h1>
+                    <p class="text-orange-100 text-lg">
+                        Teacher Database Management Portal
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <form method="POST" id="editAttendanceForm" class="p-6 md:p-8">
+                <!-- Student Information Section -->
+                <div class="mb-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Student Information</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Roll Number -->
+                        <div>
+                            <label for="roll_number" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Roll Number
+                            </label>
+                            <input type="text" id="roll_number" name="roll_number"
+                                   value="{{ attendance.roll_number }}" readonly
+                                   class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed">
+                            <p class="mt-1 text-sm text-gray-500">Roll number cannot be changed</p>
+                        </div>
+
+                        <!-- Student Name -->
+                        <div>
+                            <label for="student_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Student Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="student_name" name="student_name"
+                                   value="{{ attendance.student_name }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Details Section -->
+                <div class="mb-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-calendar-check text-green-600"></i>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Attendance Details</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Date -->
+                        <div>
+                            <label for="date" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Date <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="date" name="date"
+                                   value="{{ attendance.date.strftime('%Y-%m-%d') if attendance.date else '' }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+                        </div>
+
+                        <!-- Time In -->
+                        <div>
+                            <label for="time_in" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Time In <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" id="time_in" name="time_in"
+                                   value="{{ attendance.time_in.strftime('%H:%M') if attendance.time_in else '' }}" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Status <span class="text-red-500">*</span>
+                            </label>
+                            <select id="status" name="status" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+                                <option value="Present" {{ 'selected' if attendance.status == 'Present' else '' }}>
+                                    ✅ Present
+                                </option>
+                                <option value="Absent" {{ 'selected' if attendance.status == 'Absent' else '' }}>
+                                    ❌ Absent
+                                </option>
+                                <option value="Late" {{ 'selected' if attendance.status == 'Late' else '' }}>
+                                    ⏰ Late
+                                </option>
+                                <option value="Excused" {{ 'selected' if attendance.status == 'Excused' else '' }}>
+                                    📝 Excused
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Record ID -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Record ID
+                            </label>
+                            <input type="text" value="{{ attendance.id }}" readonly
+                                   class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed">
+                            <p class="mt-1 text-sm text-gray-500">System generated ID</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="mb-8">
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-semibold text-blue-800">Record Information</h3>
+                                <div class="mt-2 text-sm text-blue-700 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-calendar mr-2"></i>
+                                        <span>Created: {{ attendance.created_at.strftime('%Y-%m-%d %H:%M:%S') if attendance.created_at else 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        <span>Original Date: {{ attendance.date.strftime('%Y-%m-%d') if attendance.date else 'N/A' }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-stopwatch mr-2"></i>
+                                        <span>Original Time: {{ attendance.time_in.strftime('%H:%M:%S') if attendance.time_in else 'N/A' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button type="submit"
+                            class="inline-flex items-center justify-center bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        Update Attendance
+                    </button>
+                    <a href="{{ url_for('database_viewer') }}"
+                       class="inline-flex items-center justify-center border-2 border-gray-400 text-gray-700 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Database
+                    </a>
+                    <button type="button" onclick="deleteCurrentRecord()"
+                            class="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                        <i class="fas fa-trash mr-2"></i>
+                        Delete Record
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-3"></i>
+                    Confirm Delete
+                </h3>
+                <button onclick="closeDeleteModal()" class="text-white hover:text-red-200 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-700 mb-4">क्या आप इस attendance record को permanently delete करना चाहते हैं?</p>
+
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <div class="text-sm text-yellow-700 space-y-1">
+                            <div><strong>Student:</strong> {{ attendance.student_name }}</div>
+                            <div><strong>Date:</strong> {{ attendance.date.strftime('%Y-%m-%d') if attendance.date else 'N/A' }}</div>
+                            <div><strong>Status:</strong> {{ attendance.status }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-semibold text-red-800">यह action undo नहीं हो सकता!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="closeDeleteModal()"
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-trash mr-2"></i>Delete Record
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+document.getElementById('editAttendanceForm').addEventListener('submit', function(e) {
+    const studentName = document.getElementById('student_name').value.trim();
+    const date = document.getElementById('date').value;
+    const timeIn = document.getElementById('time_in').value;
+    const status = document.getElementById('status').value;
+
+    if (!studentName || !date || !timeIn || !status) {
+        e.preventDefault();
+        alert('कृपया सभी required fields भरें।');
+        return false;
+    }
+
+    // Validate date is not in future
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+
+    if (selectedDate > today) {
+        e.preventDefault();
+        alert('भविष्य की date select नहीं कर सकते।');
+        return false;
+    }
+
+    return true;
+});
+
+// Modal functions
+function deleteCurrentRecord() {
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function confirmDelete() {
+    const attendanceId = {{ attendance.id }};
+
+    fetch(`/delete_attendance/${attendanceId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccessMessage(data.message);
+            setTimeout(() => {
+                window.location.href = '{{ url_for("database_viewer") }}';
+            }, 1500);
+        } else {
+            showErrorMessage('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showErrorMessage('Error deleting record: ' + error.message);
+    });
+}
+
+// Modern alert functions
+function showSuccessMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.classList.remove('translate-x-full');
+    }, 100);
+
+    setTimeout(() => {
+        alertDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(alertDiv);
+        }, 300);
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.classList.remove('translate-x-full');
+    }, 100);
+
+    setTimeout(() => {
+        alertDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            document.body.removeChild(alertDiv);
+        }, 300);
+    }, 3000);
+}
+
+// Auto-save draft (optional)
+function saveDraft() {
+    const formData = {
+        student_name: document.getElementById('student_name').value,
+        date: document.getElementById('date').value,
+        time_in: document.getElementById('time_in').value,
+        status: document.getElementById('status').value
+    };
+
+    localStorage.setItem('attendance_edit_draft_{{ attendance.id }}', JSON.stringify(formData));
+}
+
+// Load draft on page load
+window.addEventListener('load', function() {
+    const draft = localStorage.getItem('attendance_edit_draft_{{ attendance.id }}');
+    if (draft) {
+        const data = JSON.parse(draft);
+        // Optionally restore draft data
+        console.log('Draft found:', data);
+    }
+});
+
+// Save draft on form changes
+document.querySelectorAll('#editAttendanceForm input, #editAttendanceForm select').forEach(element => {
+    element.addEventListener('change', saveDraft);
+});
+</script>
+{% endblock %}

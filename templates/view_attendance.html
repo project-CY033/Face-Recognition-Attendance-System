@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}View Attendance - Face Recognition Attendance System{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-6 lg:mb-0">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <i class="fas fa-list-alt text-blue-600 text-2xl"></i>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
+                        Attendance Records
+                    </h1>
+                    <p class="text-xl text-gray-600">Track and search your attendance history</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <a href="{{ url_for('student_dashboard') }}"
+                       class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg shadow-lg border border-gray-200 transition-all duration-200 hover:shadow-xl">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="mb-8">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center mb-2 sm:mb-0">
+                            <i class="fas fa-search mr-3"></i>
+                            Search Attendance
+                        </h2>
+                        <div class="text-blue-100 text-sm">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Search any student's attendance by roll number
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <form method="GET" id="searchForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Roll Number -->
+                            <div>
+                                <label for="roll_number" class="block text-sm font-semibold text-gray-700 mb-2">Roll Number</label>
+                                <input type="text" id="roll_number" name="roll_number"
+                                       value="{{ request.args.get('roll_number', '') }}"
+                                       placeholder="Enter roll number"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            </div>
+
+                            <!-- From Date -->
+                            <div>
+                                <label for="date_from" class="block text-sm font-semibold text-gray-700 mb-2">From Date</label>
+                                <input type="date" id="date_from" name="date_from"
+                                       value="{{ request.args.get('date_from', '') }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            </div>
+
+                            <!-- To Date -->
+                            <div>
+                                <label for="date_to" class="block text-sm font-semibold text-gray-700 mb-2">To Date</label>
+                                <input type="date" id="date_to" name="date_to"
+                                       value="{{ request.args.get('date_to', '') }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                            </div>
+
+                            <!-- Search Button -->
+                            <div class="flex items-end">
+                                <button type="submit"
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center">
+                                    <i class="fas fa-search mr-2"></i>Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Clear Filters -->
+                        <div class="flex justify-start">
+                            <a href="{{ url_for('view_attendance') }}"
+                               class="inline-flex items-center text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                <i class="fas fa-times mr-2"></i>Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        {% if attendance_records %}
+        <div class="mb-8">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">Attendance Overview</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <!-- Total Records -->
+                <div class="bg-white rounded-2xl shadow-lg p-4 md:p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i class="fas fa-calendar-alt text-blue-600 text-xl md:text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl md:text-3xl font-bold text-blue-600 mb-1">{{ attendance_records|length }}</h3>
+                    <p class="text-gray-600 text-sm md:text-base font-medium">Total Records</p>
+                </div>
+
+                <!-- Present Days -->
+                <div class="bg-white rounded-2xl shadow-lg p-4 md:p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i class="fas fa-check-circle text-green-600 text-xl md:text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl md:text-3xl font-bold text-green-600 mb-1">{{ attendance_records|selectattr('status', 'equalto', 'Present')|list|length }}</h3>
+                    <p class="text-gray-600 text-sm md:text-base font-medium">Present Days</p>
+                </div>
+
+                <!-- Earliest Time -->
+                <div class="bg-white rounded-2xl shadow-lg p-4 md:p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i class="fas fa-clock text-indigo-600 text-xl md:text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl md:text-3xl font-bold text-indigo-600 mb-1">
+                        {% if attendance_records %}
+                            {{ (attendance_records|map(attribute='time_in')|list|sort)[0].strftime('%I:%M %p') }}
+                        {% else %}
+                            --:--
+                        {% endif %}
+                    </h3>
+                    <p class="text-gray-600 text-sm md:text-base font-medium">Earliest Time</p>
+                </div>
+
+                <!-- Attendance Rate -->
+                <div class="bg-white rounded-2xl shadow-lg p-4 md:p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                        <i class="fas fa-percentage text-yellow-600 text-xl md:text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl md:text-3xl font-bold text-yellow-600 mb-1">
+                        {% if attendance_records %}
+                            {{ ((attendance_records|selectattr('status', 'equalto', 'Present')|list|length / attendance_records|length) * 100)|round(1) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h3>
+                    <p class="text-gray-600 text-sm md:text-base font-medium">Attendance Rate</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Attendance Table -->
+        <div class="mb-8">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900 flex items-center mb-4 sm:mb-0">
+                            <i class="fas fa-table mr-3 text-blue-600"></i>
+                            Attendance History
+                        </h2>
+                        {% if attendance_records %}
+                        <button onclick="exportToCSV()"
+                                class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                            <i class="fas fa-download mr-2"></i>Export CSV
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="p-0">
+                    {% if attendance_records %}
+                        <div class="overflow-x-auto">
+                            <table class="w-full" id="attendanceTable">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-hashtag mr-1"></i>S.No.
+                                        </th>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-id-card mr-1"></i>Roll Number
+                                        </th>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-user mr-1"></i>Student Name
+                                        </th>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-calendar mr-1"></i>Date
+                                        </th>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-clock mr-1"></i>Time
+                                        </th>
+                                        <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                            <i class="fas fa-check-circle mr-1"></i>Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    {% for record in attendance_records %}
+                                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                        <td class="px-4 md:px-6 py-4 text-sm md:text-base text-gray-900">{{ loop.index }}</td>
+                                        <td class="px-4 md:px-6 py-4 text-sm md:text-base">
+                                            <span class="font-semibold text-blue-600">{{ record.roll_number }}</span>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4 text-sm md:text-base text-gray-900">{{ record.student_name }}</td>
+                                        <td class="px-4 md:px-6 py-4 text-sm md:text-base">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-calendar-day mr-2 text-blue-500"></i>
+                                                <span class="text-gray-600">{{ record.date.strftime('%B %d, %Y') }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                                                <i class="fas fa-clock mr-1"></i>
+                                                {{ record.time_in.strftime('%I:%M %p') }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                                <i class="fas fa-check mr-1"></i>
+                                                {{ record.status }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                            <div class="text-center text-gray-600">
+                                <span class="text-sm">Showing {{ attendance_records|length }} records</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-calendar-times text-4xl text-gray-400"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">No attendance records found</h3>
+                            <p class="text-gray-600 mb-6">
+                                {% if request.args.get('roll_number') or request.args.get('date_from') or request.args.get('date_to') %}
+                                    Try adjusting your search criteria or clear the filters.
+                                {% else %}
+                                    Start marking your attendance to see records here.
+                                {% endif %}
+                            </p>
+                            <a href="{{ url_for('mark_attendance') }}"
+                               class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                                <i class="fas fa-camera mr-2"></i>Mark Attendance
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportToCSV() {
+    let table = document.getElementById('attendanceTable');
+    let csv = [];
+
+    // Get headers
+    let headers = [];
+    table.querySelectorAll('thead th').forEach(th => {
+        headers.push(th.textContent.trim());
+    });
+    csv.push(headers.join(','));
+
+    // Get data rows
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        let row = [];
+        tr.querySelectorAll('td').forEach(td => {
+            row.push('"' + td.textContent.trim() + '"');
+        });
+        csv.push(row.join(','));
+    });
+
+    // Download CSV
+    let csvContent = csv.join('\n');
+    let blob = new Blob([csvContent], { type: 'text/csv' });
+    let url = window.URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'attendance_records.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
