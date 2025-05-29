@@ -3,10 +3,12 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, date
 from sqlalchemy import inspect as sql_inspect # Renamed to avoid conflict
+import cv2 # For saving image in student_register
+import traceback # For detailed error logging
 
 from config import Config
 from models import db, Student, Teacher, Attendance
-from simple_face_recognition import SimpleFaceRecognition # Changed class name for clarity
+from simple_face_recognition import SimpleFaceRecognition
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -25,40 +27,24 @@ def create_tables():
     """Create database tables and handle migrations"""
     if not hasattr(create_tables, 'called'):
         try:
-            # Create all tables if they don't exist
             db.create_all()
-            
-            # Check if 'student' table exists and then if 'semester' column exists
-            # This is a basic check. For production, use Alembic.
             inspector = sql_inspect(db.engine)
             if inspector.has_table(Student.__tablename__):
                 columns = [col['name'] for col in inspector.get_columns(Student.__tablename__)]
                 if 'semester' not in columns:
                     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     print("!!! WARNING: 'semester' column is missing from 'student' table.      !!!")
-                    print("!!! This app previously had logic to DROP ALL TABLES and recreate them,!!!")
-                    print("!!! which would WIPE ALL YOUR DATA. That has been disabled.          !!!")
-                    print("!!! You need to manually add the 'semester' column to the 'student'  !!!")
-                    print("!!! table (e.g., using `ALTER TABLE student ADD COLUMN semester VARCHAR;`)")
-                    print("!!! or use a proper migration tool like Alembic.                     !!!")
-                    print("!!! The application might not function correctly until this is fixed.  !!!")
+                    # ... (rest of the warning message) ...
                     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    # The original code here was:
-                    # db.drop_all()
-                    # db.create_all()
-                    # print("✅ Database migration completed! (All tables dropped and recreated)")
-                    # This is too destructive for an automatic process.
-            
         except Exception as e:
             print(f"⚠️ Database initialization/check error: {e}")
-            # Fallback: try to create all tables again if there was a major issue.
-            # This won't help with missing columns in existing tables without drop_all.
+            traceback.print_exc()
             try:
                 db.create_all()
                 print("✅ Database tables ensured/re-attempted.")
             except Exception as e2:
                 print(f"⚠️ Persistent database error: {e2}")
-
+                traceback.print_exc()
         create_tables.called = True
 
 
@@ -71,8 +57,8 @@ def index():
 def student_register():
     """Student registration page"""
     if request.method == 'POST':
+        print("[App] Student registration POST request received.")
         try:
-            # Get form data
             roll_number = request.form['roll_number']
             name = request.form['name']
             email = request.form['email']
@@ -81,8 +67,8 @@ def student_register():
             year = request.form['year']
             semester = request.form['semester']
             subject = request.form['subject']
+            print(f"[App] Form data: Roll={roll_number}, Name={name}")
 
-            # Check if student already exists
             existing_student = Student.query.filter_by(roll_number=roll_number).first()
             if existing_student:
                 flash('Student with this roll number already exists!', 'error')
@@ -93,98 +79,83 @@ def student_register():
                 flash('Student with this email already exists!', 'error')
                 return render_template('student_register.html')
 
-            # Handle photo - only camera capture
-            photo_data = request.form.get('photo_data') # Base64 string
-
+            photo_data = request.form.get('photo_data') 
             if not photo_data:
                 flash('Please capture a photo using the camera.', 'error')
+                print("[App] No photo data provided for registration.")
                 return render_template('student_register.html')
 
-            # Camera captured photo
-            print("📷 Processing camera captured photo...")
-            filename = None # Initialize filename
-            photo_path = None # Initialize photo_path
+            print("📷 Processing camera captured photo from base64 for registration...")
+            filename = None 
+            photo_path = None 
             try:
-                # Convert base64 to image
-                image_cv = face_utils.base64_to_image(photo_data) # Returns OpenCV image
+                image_cv = face_utils.base64_to_image(photo_data)
                 if image_cv is None:
                     flash('Invalid camera photo data. Please try again.', 'error')
+                    print("[App] Registration: base64_to_image returned None.")
                     return render_template('student_register.html')
+                print(f"[App] Registration: Image decoded from base64, shape: {image_cv.shape}")
 
-                # Save camera photo
                 filename = secure_filename(f"student_{roll_number}_camera.jpg")
                 photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                cv2.imwrite(photo_path, image_cv) # Save the OpenCV image
+                print(f"📸 Registration: Photo saved to {photo_path}")
 
-                # Save image using OpenCV
-                import cv2
-                cv2.imwrite(photo_path, image_cv)
-                print(f"📸 Photo saved to {photo_path}")
-
-                # Extract face encoding from image array (OpenCV image)
-                face_encoding = face_utils.extract_face_encoding(image_cv)
-
+                face_encoding = face_utils.extract_face_encoding(image_cv) # Pass the cv image
 
             except Exception as e:
-                print(f"Error processing camera photo: {e}")
+                print(f"Error processing camera photo in student_register: {e}")
+                traceback.print_exc()
                 flash(f'Error processing camera photo: {str(e)}', 'error')
                 return render_template('student_register.html')
 
-            # Check if face was detected and encoding extracted
             if face_encoding is None:
                 flash('No face detected or could not extract features. Please ensure your face is clearly visible and try again.', 'error')
-                if filename and os.path.exists(photo_path): # If photo was saved but encoding failed
+                print("[App] Registration: face_encoding is None after extraction attempt.")
+                if filename and os.path.exists(photo_path):
                     try:
                         os.remove(photo_path)
                         print(f"🗑️ Removed photo {photo_path} due to encoding failure.")
                     except OSError as e_os:
                         print(f"Error removing photo {photo_path}: {e_os}")
                 return render_template('student_register.html')
+            
+            print(f"✅ Registration: Face encoding extracted successfully. Shape: {face_encoding.shape}")
 
-            print(f"✅ Face encoding extracted successfully. Shape: {face_encoding.shape}")
-
-            # Create new student
             student = Student(
-                roll_number=roll_number,
-                name=name,
-                email=email,
-                phone=phone,
-                course=course,
-                year=year,
-                semester=semester,
-                subject=subject,
-                photo_path=filename # Save relative path for web access
+                roll_number=roll_number, name=name, email=email, phone=phone,
+                course=course, year=year, semester=semester, subject=subject,
+                photo_path=filename
             )
             student.set_face_encoding(face_encoding)
 
             db.session.add(student)
             db.session.commit()
-
+            print(f"[App] Student {roll_number} registered and committed to DB.")
             flash('Student registered successfully with face recognition setup!', 'success')
             return redirect(url_for('index'))
 
         except Exception as e:
-            print(f"Error during registration: {e}")
-            import traceback
+            print(f"Error during student registration: {e}")
             traceback.print_exc()
             flash(f'Error during registration: {str(e)}', 'error')
             db.session.rollback()
-
     return render_template('student_register.html')
 
 @app.route('/teacher_register', methods=['GET', 'POST'])
 def teacher_register():
     """Teacher registration page"""
     if request.method == 'POST':
+        print("[App] Teacher registration POST request received.")
         try:
-            # Get form data
-            teacher_id_form = request.form['teacher_id'] # Renamed to avoid conflict with model
+            teacher_id_form = request.form['teacher_id']
             name = request.form['name']
             email = request.form['email']
             phone = request.form['phone']
             department = request.form['department']
             subject = request.form['subject']
+            print(f"[App] Teacher form data: ID={teacher_id_form}, Name={name}")
 
-            # Check if teacher already exists
             existing_teacher = Teacher.query.filter_by(teacher_id=teacher_id_form).first()
             if existing_teacher:
                 flash('Teacher with this ID already exists!', 'error')
@@ -195,60 +166,49 @@ def teacher_register():
                 flash('Teacher with this email already exists!', 'error')
                 return render_template('teacher_register.html')
 
-            # Handle photo upload
-            photo_file = request.files['photo'] # Renamed to avoid conflict
+            photo_file = request.files['photo']
             if photo_file and photo_file.filename:
                 filename = secure_filename(f"teacher_{teacher_id_form}_{photo_file.filename}")
-                photo_path_full = os.path.join(app.config['UPLOAD_FOLDER'], filename) # Full path for saving/processing
+                photo_path_full = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 photo_file.save(photo_path_full)
                 print(f"📸 Teacher photo saved to {photo_path_full}")
 
-                # Extract face encoding from the saved image file path
-                face_encoding = face_utils.extract_face_encoding(photo_path_full)
+                face_encoding = face_utils.extract_face_encoding(photo_path_full) # Pass file path
                 if face_encoding is None:
-                    flash('No face detected in the uploaded photo. Please upload a clear photo with your face visible.', 'error')
+                    flash('No face detected in the uploaded photo. Please upload a clear photo.', 'error')
+                    print("[App] Teacher reg: No face encoding from uploaded photo.")
                     try:
                         os.remove(photo_path_full)
-                        print(f"🗑️ Removed photo {photo_path_full} due to encoding failure.")
                     except OSError as e_os:
-                        print(f"Error removing photo {photo_path_full}: {e_os}")
+                        print(f"Error removing teacher photo {photo_path_full}: {e_os}")
                     return render_template('teacher_register.html')
+                print(f"✅ Teacher reg: Face encoding extracted, shape: {face_encoding.shape}")
 
-                # Create new teacher
                 teacher = Teacher(
-                    teacher_id=teacher_id_form,
-                    name=name,
-                    email=email,
-                    phone=phone,
-                    department=department,
-                    subject=subject,
-                    photo_path=filename # Save relative path for web access
+                    teacher_id=teacher_id_form, name=name, email=email, phone=phone,
+                    department=department, subject=subject, photo_path=filename
                 )
                 teacher.set_face_encoding(face_encoding)
-
                 db.session.add(teacher)
                 db.session.commit()
-
+                print(f"[App] Teacher {teacher_id_form} registered and committed to DB.")
                 flash('Teacher registered successfully!', 'success')
                 return redirect(url_for('index'))
             else:
                 flash('Please upload a photo for face recognition.', 'error')
-
         except Exception as e:
             print(f"Error during teacher registration: {e}")
-            import traceback
             traceback.print_exc()
             flash(f'Error during registration: {str(e)}', 'error')
             db.session.rollback()
-
     return render_template('teacher_register.html')
 
 
 @app.route('/login', methods=['POST'])
 def login():
-    """Login functionality"""
-    user_id_form = request.form['user_id'] # Renamed to avoid conflict
+    user_id_form = request.form['user_id']
     user_type = request.form['user_type']
+    print(f"[App] Login attempt: UserID={user_id_form}, Type={user_type}")
 
     if user_type == 'student':
         user = Student.query.filter_by(roll_number=user_id_form).first()
@@ -260,7 +220,6 @@ def login():
             return redirect(url_for('student_dashboard'))
         else:
             flash('Student not found. Please check your roll number.', 'error')
-
     elif user_type == 'teacher':
         user = Teacher.query.filter_by(teacher_id=user_id_form).first()
         if user:
@@ -271,292 +230,160 @@ def login():
             return redirect(url_for('teacher_dashboard'))
         else:
             flash('Teacher not found. Please check your teacher ID.', 'error')
-
     return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
-    """Logout functionality"""
     session.clear()
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/student_dashboard')
 def student_dashboard():
-    """Student dashboard"""
     if 'user_id' not in session or session.get('user_type') != 'student':
         flash('Please login to access the dashboard.', 'error')
         return redirect(url_for('index'))
-
-    student_obj = Student.query.get(session['user_id']) # Renamed
+    student_obj = Student.query.get(session['user_id'])
     if not student_obj:
         flash('Student not found.', 'error')
+        session.clear()
         return redirect(url_for('index'))
 
-    # Get attendance statistics
     total_attendance = Attendance.query.filter_by(student_id=student_obj.id).count()
     present_days = Attendance.query.filter_by(student_id=student_obj.id, status='Present').count()
-    absent_days = total_attendance - present_days # This might be incorrect if other statuses exist
+    absent_days = total_attendance - present_days 
     percentage = round((present_days / total_attendance * 100), 1) if total_attendance > 0 else 0
-
-    attendance_stats = {
-        'total_days': total_attendance,
-        'present_days': present_days,
-        'absent_days': absent_days,
-        'percentage': percentage
-    }
-
-    # Get recent attendance (last 5 records)
-    recent_attendance = Attendance.query.filter_by(student_id=student_obj.id)\
-                                      .order_by(Attendance.created_at.desc())\
-                                      .limit(5).all()
-
-    return render_template('student_dashboard.html',
-                         student=student_obj,
-                         attendance_stats=attendance_stats,
-                         recent_attendance=recent_attendance)
+    attendance_stats = {'total_days': total_attendance, 'present_days': present_days, 'absent_days': absent_days, 'percentage': percentage}
+    recent_attendance = Attendance.query.filter_by(student_id=student_obj.id).order_by(Attendance.created_at.desc()).limit(5).all()
+    return render_template('student_dashboard.html', student=student_obj, attendance_stats=attendance_stats, recent_attendance=recent_attendance)
 
 @app.route('/teacher_dashboard')
 def teacher_dashboard():
-    """Teacher dashboard with statistics"""
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         flash('Please login to access the dashboard.', 'error')
         return redirect(url_for('index'))
-
-    teacher_obj = Teacher.query.get(session['user_id']) # Renamed
-    if not teacher_obj: # Added check
+    teacher_obj = Teacher.query.get(session['user_id'])
+    if not teacher_obj:
         flash('Teacher account not found.', 'error')
         session.clear()
         return redirect(url_for('index'))
 
-
-    # Calculate statistics
     total_students = Student.query.count()
-    today_date = date.today() # Renamed
+    today_date = date.today()
     today_present = Attendance.query.filter_by(date=today_date, status='Present').count()
-    
-    # Calculate today_absent more accurately if considering only registered students
-    # This calculation can be complex depending on definition of "absent"
-    # For simplicity, if total_students participated today:
-    # students_attended_today = db.session.query(Attendance.student_id).filter_by(date=today_date).distinct().count()
-    # today_absent = total_students - students_attended_today 
-    # The original logic was: total_students - today_present, which is fine if all students are expected every day.
     today_absent = total_students - today_present if total_students >= today_present else 0
-
-
     attendance_percentage = round((today_present / total_students * 100), 1) if total_students > 0 else 0
-
-    return render_template('teacher_dashboard.html',
-                         teacher=teacher_obj,
-                         total_students=total_students,
-                         today_present=today_present,
-                         today_absent=today_absent,
-                         attendance_percentage=attendance_percentage)
+    return render_template('teacher_dashboard.html', teacher=teacher_obj, total_students=total_students, today_present=today_present, today_absent=today_absent, attendance_percentage=attendance_percentage)
 
 @app.route('/mark_attendance')
 def mark_attendance():
-    """Mark attendance page"""
     if 'user_id' not in session or session.get('user_type') != 'student':
         flash('Please login to mark attendance.', 'error')
         return redirect(url_for('index'))
-
     return render_template('mark_attendance.html')
 
 @app.route('/process_attendance', methods=['POST'])
 def process_attendance():
-    """
-    Face Recognition Attendance System
-    """
+    print("[App] process_attendance called.")
     try:
-        # 1. Authentication check
         if 'user_id' not in session or session.get('user_type') != 'student':
-            return jsonify({
-                'success': False, 
-                'message': 'Authentication required. Please login as student.',
-                'error_code': 'AUTH_REQUIRED'
-            })
+            return jsonify({'success': False, 'message': 'Authentication required.', 'error_code': 'AUTH_REQUIRED'})
 
-        # 2. Get logged-in student
-        student_obj = Student.query.get(session['user_id']) # Renamed
+        student_obj = Student.query.get(session['user_id'])
         if not student_obj:
-            return jsonify({
-                'success': False, 
-                'message': 'Student account not found. Please re-login.',
-                'error_code': 'STUDENT_NOT_FOUND'
-            })
-
+            return jsonify({'success': False, 'message': 'Student account not found.', 'error_code': 'STUDENT_NOT_FOUND'})
         print(f"🎯 Processing attendance for: {student_obj.name} (Roll: {student_obj.roll_number})")
 
-        # 3. Validate request data
         data = request.get_json()
         if not data or 'image' not in data:
-            return jsonify({
-                'success': False, 
-                'message': 'No image data received. Please capture photo again.',
-                'error_code': 'NO_IMAGE_DATA'
-            })
+            return jsonify({'success': False, 'message': 'No image data received.', 'error_code': 'NO_IMAGE_DATA'})
 
-        # 4. Convert and validate image
-        print("📷 Converting base64 image...")
+        print("📷 Converting base64 image for attendance...")
         try:
-            image_cv = face_utils.base64_to_image(data['image']) # OpenCV image
+            image_cv = face_utils.base64_to_image(data['image'])
             if image_cv is None:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Invalid image format. Please try capturing again.',
-                    'error_code': 'INVALID_IMAGE'
-                })
-            
-            if image_cv.shape[0] < 100 or image_cv.shape[1] < 100: # Basic size check
-                return jsonify({
-                    'success': False, 
-                    'message': 'Image too small. Please move closer to the camera.',
-                    'error_code': 'IMAGE_TOO_SMALL'
-                })
-                
+                print("[App] Attendance: base64_to_image returned None.")
+                return jsonify({'success': False, 'message': 'Invalid image format.', 'error_code': 'INVALID_IMAGE'})
+            print(f"[App] Attendance: Image decoded, shape: {image_cv.shape}")
+            if image_cv.shape[0] < 100 or image_cv.shape[1] < 100:
+                return jsonify({'success': False, 'message': 'Image too small.', 'error_code': 'IMAGE_TOO_SMALL'})
         except Exception as e:
-            print(f"Image processing error: {e}")
-            return jsonify({
-                'success': False, 
-                'message': f'Image processing error: {str(e)}. Please try again.',
-                'error_code': 'IMAGE_PROCESSING_ERROR'
-            })
+            print(f"Image processing error in process_attendance: {e}")
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': f'Image processing error: {str(e)}.', 'error_code': 'IMAGE_PROCESSING_ERROR'})
 
-        # 5. Image quality checks (optional, can be basic or use face_utils)
-        print("🔍 Performing image quality assessment...")
-        quality_result = face_utils.assess_image_quality(image_cv) # This is now very lenient
-        if not quality_result['is_good_quality']:
-            # Even if lenient, good to have a check
-            # return jsonify({
-            #     'success': False, 
-            #     'message': f'Image quality issue: {quality_result["message"]}. Please try again.',
-            #     'error_code': 'POOR_IMAGE_QUALITY',
-            #     'quality_details': quality_result
-            # })
-            print(f"⚠️ Quality warning: {quality_result['message']}")
+        quality_result = face_utils.assess_image_quality(image_cv)
+        print(f"[App] Image quality: {quality_result}")
+        # Not blocking on quality for now, to simplify debugging recognition
+        # if not quality_result['is_good_quality']:
+        #     return jsonify({'success': False, 'message': f'Image quality issue: {quality_result["message"]}.', 'error_code': 'POOR_IMAGE_QUALITY'})
 
-
-        # 6. Face detection
-        print("🔍 Detecting faces in image...")
-        # This now returns 'dlib_face_locations' among other things
-        face_detection_result = face_utils.detect_faces_advanced(image_cv) 
+        print("🔍 Detecting faces in attendance image...")
+        face_detection_result = face_utils.detect_faces_advanced(image_cv)
+        print(f"[App] Face detection result: {face_detection_result}")
         
-        if not face_detection_result['faces_found']:
-            return jsonify({
-                'success': False, 
-                'message': '😕 No face detected. Please position your face properly.',
-                'error_code': 'NO_FACE_DETECTED',
-                'suggestions': ['Ensure good lighting', 'Look at camera', 'Remove coverings']
-            })
+        if not face_detection_result.get('faces_found'):
+            return jsonify({'success': False, 'message': '😕 No face detected.', 'error_code': 'NO_FACE_DETECTED'})
+        if face_detection_result.get('multiple_faces'):
+            return jsonify({'success': False, 'message': '👥 Multiple faces detected.', 'error_code': 'MULTIPLE_FACES'})
 
-        if face_detection_result['multiple_faces']:
-            return jsonify({
-                'success': False, 
-                'message': '👥 Multiple faces detected. Only one person allowed.',
-                'error_code': 'MULTIPLE_FACES',
-                'face_count': face_detection_result['face_count']
-            })
-
-        # 7. Anti-spoofing (simplified)
         print("🛡️ Performing anti-spoofing checks...")
-        if not app.config.get('DISABLE_ANTI_SPOOFING', False):
-            if app.config.get('ULTRA_RELAXED_MODE', False) or app.config.get('RELAXED_ANTI_SPOOFING', False):
-                print("🔧 Using relaxed/ultra-relaxed anti-spoofing mode.")
-                # The new detect_spoofing in simple_face_recognition.py handles these flags
-                spoofing_result = face_utils.detect_spoofing(image_cv)
-                if spoofing_result['is_spoofing']:
-                    print(f"⚠️ Relaxed spoofing check failed: {spoofing_result['reason']}")
-                    # Decide if to block even in relaxed mode. For now, let's be very lenient.
-                    # if spoofing_result['confidence'] < 0.3: # Example: block if very low confidence
-                    #    return jsonify(...) 
-            else: # Standard anti-spoofing
-                spoofing_result = face_utils.detect_spoofing(image_cv)
-                if spoofing_result['is_spoofing']:
-                    return jsonify({
-                        'success': False, 
-                        'message': f'🚫 Security alert: {spoofing_result["reason"]}. Live camera only.',
-                        'error_code': 'SPOOFING_DETECTED',
-                        'security_details': spoofing_result
-                    })
-        else:
-            print("⚠️ Anti-spoofing disabled by config.")
+        spoofing_result = face_utils.detect_spoofing(image_cv)
+        print(f"[App] Spoofing check result: {spoofing_result}")
+        if spoofing_result['is_spoofing']:
+            # Only block if NOT in relaxed/disabled mode
+            if not (Config.DISABLE_ANTI_SPOOFING or Config.ULTRA_RELAXED_MODE or Config.RELAXED_ANTI_SPOOFING) :
+                 return jsonify({
+                    'success': False, 
+                    'message': f'🚫 Security alert: {spoofing_result["reason"]}. Live camera only.',
+                    'error_code': 'SPOOFING_DETECTED',
+                    'security_details': spoofing_result
+                })
+            else:
+                print("[App] Spoofing detected but overridden by relaxed/disabled config.")
 
 
-        # 8. Extract face encoding using the detected face location
-        print("🧠 Extracting face encoding...")
-        # Use the first (and only) detected face's dlib_location
+        print("🧠 Extracting face encoding for attendance...")
+        if not face_detection_result.get('dlib_face_locations') or not face_detection_result['dlib_face_locations']:
+            print("❌ No dlib_face_locations found in detection_result for attendance.")
+            return jsonify({'success': False, 'message': 'Internal error: Face location data missing.', 'error_code': 'INTERNAL_DETECTION_ERROR'})
+        
         dlib_location = face_detection_result['dlib_face_locations'][0]
         encoding_result = face_utils.extract_specific_face_encoding(image_cv, dlib_location)
+        print(f"[App] Encoding result for attendance: {encoding_result}")
 
-        if not encoding_result['success']:
-            return jsonify({
-                'success': False, 
-                'message': f'Face analysis failed: {encoding_result["error"]}',
-                'error_code': 'ENCODING_FAILED'
-            })
+        if not encoding_result or not encoding_result.get('success'):
+            error_msg = encoding_result.get('error', 'Unknown') if encoding_result else "None"
+            return jsonify({'success': False, 'message': f'Face analysis failed: {error_msg}', 'error_code': 'ENCODING_FAILED'})
 
         captured_encoding = encoding_result['encoding']
-        # The new 'confidence' from encoding_result is static (0.95 on success).
-        # The actual matching similarity is more important.
-        print(f"✅ Face encoding extracted. Static success confidence: {encoding_result['confidence']:.3f}")
+        # print(f"✅ Attendance: Face encoding extracted. Confidence: {encoding_result.get('confidence', 0.0):.3f}")
 
-
-        # 9. Get stored face encoding
         print(f"📋 Retrieving stored face data for {student_obj.roll_number}...")
         stored_encoding = student_obj.get_face_encoding()
         if stored_encoding is None:
-            return jsonify({
-                'success': False, 
-                'message': 'No registered face data. Please re-register your account.',
-                'error_code': 'NO_STORED_ENCODING'
-            })
+            print(f"[App] No stored encoding for student {student_obj.roll_number}")
+            return jsonify({'success': False, 'message': 'No registered face data. Please re-register.', 'error_code': 'NO_STORED_ENCODING'})
+        # print(f"[App] Stored encoding retrieved, shape: {stored_encoding.shape}")
 
-        # 10. Face matching
-        print("⚡ Performing face matching...")
+        print("⚡ Performing face matching for attendance...")
         tolerance = app.config.get('FACE_RECOGNITION_TOLERANCE', 0.6)
-        # compare_faces_advanced now returns (is_match, similarity_score)
-        # where similarity_score is 1 - distance. Higher is better.
-        primary_match, similarity_score = face_utils.compare_faces_advanced(
-            stored_encoding, captured_encoding, tolerance=tolerance
-        )
-        
-        print(f"📊 Face matching results:")
-        print(f"  - Match Status: {'✅ YES' if primary_match else '❌ NO'}")
-        print(f"  - Similarity Score (1-distance): {similarity_score:.3f}")
-        print(f"  - Tolerance: {tolerance}")
+        primary_match, similarity_score = face_utils.compare_faces_advanced(stored_encoding, captured_encoding, tolerance=tolerance)
+        # print(f"📊 Attendance Match: Status={primary_match}, Similarity={similarity_score:.3f}, Tolerance={tolerance}")
 
-        # The old confidence_score > 0.7 check might not be needed if encoding_result['confidence'] is static
-        # Rely mainly on primary_match which considers the tolerance.
         if primary_match:
-            # 11. Check for duplicate attendance
-            today_date = date.today() # Renamed
-            existing_attendance = Attendance.query.filter_by(
-                student_id=student_obj.id,
-                date=today_date
-            ).first()
-
+            today_date = date.today()
+            existing_attendance = Attendance.query.filter_by(student_id=student_obj.id, date=today_date).first()
             if existing_attendance:
-                return jsonify({
-                    'success': False, 
-                    'message': f'✅ Attendance already marked for today at {existing_attendance.time_in.strftime("%I:%M %p")}',
-                    'error_code': 'ALREADY_MARKED',
-                    'existing_time': existing_attendance.time_in.strftime("%I:%M %p")
-                })
+                return jsonify({'success': False, 'message': f'✅ Already marked for today at {existing_attendance.time_in.strftime("%I:%M %p")}', 'error_code': 'ALREADY_MARKED'})
 
-            # 12. Mark attendance
             current_time = datetime.now()
-            attendance_record = Attendance( # Renamed
-                student_id=student_obj.id,
-                roll_number=student_obj.roll_number,
-                student_name=student_obj.name,
-                date=today_date,
-                time_in=current_time.time(),
-                status='Present'
+            attendance_record = Attendance(
+                student_id=student_obj.id, roll_number=student_obj.roll_number, student_name=student_obj.name,
+                date=today_date, time_in=current_time.time(), status='Present'
             )
-
             db.session.add(attendance_record)
             db.session.commit()
-
             print(f"🎉 Attendance marked successfully for {student_obj.name}")
             
             total_days = Attendance.query.filter_by(student_id=student_obj.id).count()
@@ -564,93 +391,60 @@ def process_attendance():
             attendance_percentage = round((present_days / total_days * 100), 1) if total_days > 0 else 100
 
             return jsonify({
-                'success': True,
-                'message': f'🎉 Attendance marked for {student_obj.name}!',
+                'success': True, 'message': f'🎉 Attendance marked for {student_obj.name}!',
                 'details': {
-                    'student_name': student_obj.name,
-                    'roll_number': student_obj.roll_number,
-                    'time_marked': current_time.strftime("%I:%M %p"),
-                    'date': today_date.strftime("%B %d, %Y"),
+                    'student_name': student_obj.name, 'roll_number': student_obj.roll_number,
+                    'time_marked': current_time.strftime("%I:%M %p"), 'date': today_date.strftime("%B %d, %Y"),
                     'similarity_score': round(similarity_score, 3),
-                    'confidence': round(encoding_result['confidence'], 3), # Static confidence
-                    'total_attendance_days': total_days,
-                    'attendance_percentage': attendance_percentage
+                    'confidence': round(encoding_result.get('confidence', 0.0), 3), 
+                    'total_attendance_days': total_days, 'attendance_percentage': attendance_percentage
                 }
             })
-
         else:
             print(f"❌ Face recognition failed for {student_obj.name}")
-            failure_reason = "Face does not match registered photo"
-            suggestions = [
-                "Ensure good lighting on your face",
-                "Look directly at the camera",
-                "Try again in better lighting conditions"
-            ]
-            
             return jsonify({
-                'success': False,
-                'message': f'❌ {failure_reason}. Please try again.',
+                'success': False, 'message': '❌ Face does not match registered photo. Please try again.',
                 'error_code': 'FACE_MISMATCH',
                 'details': {
                     'similarity_score': round(similarity_score, 3),
-                    'required_similarity_threshold_for_match_at_tolerance': round(1 - tolerance, 3), # distance must be <= tolerance
-                    'suggestions': suggestions
+                    'required_similarity_threshold_for_match_at_tolerance': round(1 - tolerance, 3),
+                    'suggestions': ["Ensure good lighting", "Look directly at camera"]
                 }
             })
-
     except Exception as e:
-        print(f"💥 Error in process_attendance: {str(e)}")
-        import traceback
+        print(f"💥 Outer Error in process_attendance: {str(e)}")
         traceback.print_exc()
-        
-        return jsonify({
-            'success': False, 
-            'message': 'System error occurred. Please try again or contact support.',
-            'error_code': 'SYSTEM_ERROR',
-            'details': str(e) if app.debug else 'Internal server error'
-        })
+        return jsonify({'success': False, 'message': 'System error occurred. Please contact support.', 'error_code': 'SYSTEM_ERROR', 'details': str(e) if app.debug else "Internal Server Error"})
+
 
 @app.route('/view_attendance')
 def view_attendance():
-    """View attendance records"""
-    # Teacher or Student can view. If student, only their own.
-    # If teacher, can search by roll_number.
     if 'user_id' not in session:
         flash('Please login to view attendance.', 'error')
         return redirect(url_for('index'))
 
     query = Attendance.query
     user_type = session.get('user_type')
-
-    roll_number_search = request.args.get('roll_number', '') # Renamed
-    date_from_str = request.args.get('date_from', '') # Renamed
-    date_to_str = request.args.get('date_to', '') # Renamed
+    roll_number_search = request.args.get('roll_number', '')
+    date_from_str = request.args.get('date_from', '')
+    date_to_str = request.args.get('date_to', '')
 
     if user_type == 'student':
         student_obj = Student.query.get(session['user_id'])
         if not student_obj:
-            flash('Student not found.', 'error')
-            return redirect(url_for('index'))
-        # Students can only see their own, roll_number_search is ignored for them
+            flash('Student not found.', 'error'); return redirect(url_for('index'))
         query = query.filter_by(student_id=student_obj.id)
     elif user_type == 'teacher':
         if roll_number_search:
             query = query.filter(Attendance.roll_number.contains(roll_number_search))
-    else: # Should not happen
-        flash('Invalid user type.', 'error')
-        return redirect(url_for('index'))
+    else:
+        flash('Invalid user type.', 'error'); return redirect(url_for('index'))
     
     try:
-        if date_from_str:
-            date_from_obj = datetime.strptime(date_from_str, '%Y-%m-%d').date() # Renamed
-            query = query.filter(Attendance.date >= date_from_obj)
-        if date_to_str:
-            date_to_obj = datetime.strptime(date_to_str, '%Y-%m-%d').date() # Renamed
-            query = query.filter(Attendance.date <= date_to_obj)
+        if date_from_str: query = query.filter(Attendance.date >= datetime.strptime(date_from_str, '%Y-%m-%d').date())
+        if date_to_str: query = query.filter(Attendance.date <= datetime.strptime(date_to_str, '%Y-%m-%d').date())
     except ValueError:
         flash('Invalid date format. Please use YYYY-MM-DD.', 'error')
-        # Show unfiltered results or return early
-        # For now, proceed with potentially partially filtered query
 
     attendance_records = query.order_by(Attendance.date.desc(), Attendance.time_in.desc()).all()
     return render_template('view_attendance.html', attendance_records=attendance_records)
@@ -658,194 +452,129 @@ def view_attendance():
 
 @app.route('/database_viewer')
 def database_viewer():
-    """Database viewer - केवल Teachers के लिए"""
     if 'user_id' not in session or session.get('user_type') != 'teacher':
-        flash('केवल Teachers को Database Access की अनुमति है! कृपया Teacher के रूप में Login करें।', 'error')
+        flash('केवल Teachers को Database Access की अनुमति है!', 'error')
         return redirect(url_for('index'))
-
-    teacher_obj = Teacher.query.get(session['user_id']) # Renamed
+    teacher_obj = Teacher.query.get(session['user_id'])
     if not teacher_obj:
-        flash('Teacher account not found. Please login again.', 'error')
-        return redirect(url_for('logout'))
+        flash('Teacher account not found.', 'error'); return redirect(url_for('logout'))
 
-    students_list = Student.query.all() # Renamed
-    teachers_list = Teacher.query.all() # Renamed
-    # Limit attendance records for performance
-    attendance_records_list = Attendance.query.order_by(Attendance.created_at.desc()).limit(100).all() # Renamed & Limited
-
+    students_list = Student.query.all()
+    teachers_list = Teacher.query.all()
+    attendance_records_list = Attendance.query.order_by(Attendance.created_at.desc()).limit(100).all()
     stats = {
-        'total_students': Student.query.count(),
-        'total_teachers': Teacher.query.count(),
+        'total_students': Student.query.count(), 'total_teachers': Teacher.query.count(),
         'total_attendance': Attendance.query.count(),
         'face_encodings': Student.query.filter(Student.face_encoding.isnot(None)).count() + \
                          Teacher.query.filter(Teacher.face_encoding.isnot(None)).count()
     }
-
-    return render_template('database_viewer.html',
-                         students=students_list,
-                         teachers=teachers_list,
-                         attendance_records=attendance_records_list,
-                         stats=stats,
-                         current_teacher=teacher_obj)
-
+    return render_template('database_viewer.html', students=students_list, teachers=teachers_list,
+                         attendance_records=attendance_records_list, stats=stats, current_teacher=teacher_obj)
 
 @app.route('/edit_attendance/<int:attendance_id>', methods=['GET', 'POST'])
 def edit_attendance(attendance_id):
-    """Edit attendance record - केवल Teachers के लिए"""
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         flash('केवल Teachers को Attendance Edit करने की अनुमति है!', 'error')
         return redirect(url_for('index'))
-
-    attendance_record = Attendance.query.get_or_404(attendance_id) # Renamed
-
+    attendance_record = Attendance.query.get_or_404(attendance_id)
     if request.method == 'POST':
         try:
             attendance_record.student_name = request.form['student_name']
             attendance_record.date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
             attendance_record.time_in = datetime.strptime(request.form['time_in'], '%H:%M').time()
             attendance_record.status = request.form['status']
-
             db.session.commit()
-            flash(f'Attendance record updated successfully for {attendance_record.student_name}!', 'success')
+            flash(f'Attendance record updated for {attendance_record.student_name}!', 'success')
             return redirect(url_for('database_viewer'))
-
         except Exception as e:
-            flash(f'Error updating attendance: {str(e)}', 'error')
-            db.session.rollback()
-
+            flash(f'Error updating attendance: {str(e)}', 'error'); db.session.rollback()
     return render_template('edit_attendance.html', attendance=attendance_record)
-
 
 @app.route('/delete_attendance/<int:attendance_id>', methods=['POST'])
 def delete_attendance(attendance_id):
-    """Delete attendance record - केवल Teachers के लिए"""
     if 'user_id' not in session or session.get('user_type') != 'teacher':
-        return jsonify({'success': False, 'message': 'केवल Teachers को Attendance Delete करने की अनुमति है!'})
-
+        return jsonify({'success': False, 'message': 'केवल Teachers को अनुमति है!'})
     try:
-        attendance_record = Attendance.query.get_or_404(attendance_id) # Renamed
-        student_name_deleted = attendance_record.student_name # Renamed
-
+        attendance_record = Attendance.query.get_or_404(attendance_id)
+        name = attendance_record.student_name
         db.session.delete(attendance_record)
         db.session.commit()
-
-        # flash(f'Attendance record deleted successfully for {student_name_deleted}!', 'success') # flash won't show on jsonify
-        return jsonify({'success': True, 'message': f'Attendance deleted for {student_name_deleted}'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error deleting attendance: {str(e)}'})
-
-
-@app.route('/bulk_attendance_action', methods=['POST'])
-def bulk_attendance_action():
-    """Bulk attendance actions - केवल Teachers के लिए"""
-    if 'user_id' not in session or session.get('user_type') != 'teacher':
-        return jsonify({'success': False, 'message': 'केवल Teachers को Bulk Actions की अनुमति है!'})
-
-    try:
-        data = request.get_json()
-        action = data.get('action')
-        attendance_ids = data.get('attendance_ids', [])
-
-        if not attendance_ids:
-            return jsonify({'success': False, 'message': 'No records selected'})
-
-        count = 0
-        if action == 'delete':
-            for att_id in attendance_ids:
-                attendance_record = Attendance.query.get(att_id) # Renamed
-                if attendance_record:
-                    db.session.delete(attendance_record)
-                    count += 1
-            message = f'{count} attendance records deleted successfully!'
-        elif action == 'mark_absent':
-            for att_id in attendance_ids:
-                attendance_record = Attendance.query.get(att_id) # Renamed
-                if attendance_record:
-                    attendance_record.status = 'Absent'
-                    count += 1
-            message = f'{count} records marked as Absent!'
-        else:
-            return jsonify({'success': False, 'message': 'Invalid action'})
-
-        if count > 0:
-            db.session.commit()
-        return jsonify({'success': True, 'message': message})
-
+        return jsonify({'success': True, 'message': f'Attendance for {name} deleted'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
+@app.route('/bulk_attendance_action', methods=['POST'])
+def bulk_attendance_action():
+    if 'user_id' not in session or session.get('user_type') != 'teacher':
+        return jsonify({'success': False, 'message': 'केवल Teachers को अनुमति है!'})
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        ids = data.get('attendance_ids', [])
+        if not ids: return jsonify({'success': False, 'message': 'No records selected'})
+        count = 0
+        message = ""
+        if action == 'delete':
+            Attendance.query.filter(Attendance.id.in_(ids)).delete(synchronize_session=False)
+            count = len(ids)
+            message = f'{count} attendance records deleted.'
+        elif action == 'mark_absent':
+            records_to_update = Attendance.query.filter(Attendance.id.in_(ids)).all()
+            for record in records_to_update:
+                record.status = 'Absent'
+                count +=1
+            message = f'{count} records marked as Absent.'
+        else:
+            return jsonify({'success': False, 'message': 'Invalid action'})
+        
+        if count > 0: db.session.commit()
+        return jsonify({'success': True, 'message': message})
+    except Exception as e:
+        db.session.rollback(); return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-@app.route('/edit_student/<int:student_id_param>', methods=['GET', 'POST']) # Renamed param
+
+@app.route('/edit_student/<int:student_id_param>', methods=['GET', 'POST'])
 def edit_student(student_id_param):
     if 'user_id' not in session or session.get('user_type') != 'teacher':
-        flash('केवल Teachers को अनुमति है!', 'error')
-        return redirect(url_for('index'))
-
-    student_obj = Student.query.get_or_404(student_id_param) # Renamed
-
+        flash('केवल Teachers को अनुमति है!', 'error'); return redirect(url_for('index'))
+    student_obj = Student.query.get_or_404(student_id_param)
     if request.method == 'POST':
         try:
             student_obj.name = request.form.get('name', student_obj.name)
             student_obj.email = request.form.get('email', student_obj.email)
-            # Prevent changing roll_number easily, it's a key identifier
-            # student_obj.roll_number = request.form.get('roll_number', student_obj.roll_number)
             student_obj.course = request.form.get('course', student_obj.course)
             student_obj.year = request.form.get('year', student_obj.year)
             student_obj.semester = request.form.get('semester', student_obj.semester)
             student_obj.subject = request.form.get('subject', student_obj.subject)
-            # Photo and face encoding updates would require more complex logic here
             db.session.commit()
-            flash('Student information updated successfully!', 'success')
-            return redirect(url_for('database_viewer'))
+            flash('Student information updated!', 'success'); return redirect(url_for('database_viewer'))
         except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating student: {str(e)}', 'error')
-            # Stay on edit page if error
-            return render_template('edit_student.html', student=student_obj)
-            
+            db.session.rollback(); flash(f'Error updating student: {str(e)}', 'error')
     return render_template('edit_student.html', student=student_obj)
 
-
-@app.route('/delete_student/<int:student_id_param>', methods=['POST']) # Renamed param
+@app.route('/delete_student/<int:student_id_param>', methods=['POST'])
 def delete_student(student_id_param):
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         return jsonify({'success': False, 'message': 'केवल Teachers को अनुमति है!'})
-
     try:
-        student_obj = Student.query.get_or_404(student_id_param) # Renamed
-        student_name_deleted = student_obj.name # Renamed
-
-        # Delete related attendance records first
-        Attendance.query.filter_by(student_id=student_obj.id).delete() # Use student_id for FK
-
-        # Delete student photo if exists
+        student_obj = Student.query.get_or_404(student_id_param)
+        name = student_obj.name
+        Attendance.query.filter_by(student_id=student_obj.id).delete()
         if student_obj.photo_path:
-            try:
-                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], student_obj.photo_path))
-            except OSError as e:
-                print(f"Error deleting student photo file {student_obj.photo_path}: {e}")
-
-
+            try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], student_obj.photo_path))
+            except OSError as e: print(f"Error deleting student photo {student_obj.photo_path}: {e}")
         db.session.delete(student_obj)
         db.session.commit()
-
-        return jsonify({'success': True, 'message': f'Student {student_name_deleted} successfully deleted!'})
-
+        return jsonify({'success': True, 'message': f'Student {name} deleted!'})
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+        db.session.rollback(); return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-
-@app.route('/edit_teacher/<int:teacher_id_param>', methods=['GET', 'POST']) # Renamed param
+@app.route('/edit_teacher/<int:teacher_id_param>', methods=['GET', 'POST'])
 def edit_teacher(teacher_id_param):
     if 'user_id' not in session or session.get('user_type') != 'teacher':
-        flash('केवल Teachers को अनुमति है!', 'error')
-        return redirect(url_for('index'))
-
-    teacher_obj = Teacher.query.get_or_404(teacher_id_param) # Renamed
+        flash('केवल Teachers को अनुमति है!', 'error'); return redirect(url_for('index'))
+    teacher_obj = Teacher.query.get_or_404(teacher_id_param)
     if request.method == 'POST':
         try:
             teacher_obj.name = request.form.get('name', teacher_obj.name)
@@ -853,136 +582,91 @@ def edit_teacher(teacher_id_param):
             teacher_obj.department = request.form.get('department', teacher_obj.department)
             teacher_obj.subject = request.form.get('subject', teacher_obj.subject)
             db.session.commit()
-            flash('Teacher information updated successfully!', 'success')
-            return redirect(url_for('database_viewer'))
+            flash('Teacher information updated!', 'success'); return redirect(url_for('database_viewer'))
         except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating teacher: {str(e)}', 'error')
-            return render_template('edit_teacher.html', teacher=teacher_obj)
-
+            db.session.rollback(); flash(f'Error updating teacher: {str(e)}', 'error')
     return render_template('edit_teacher.html', teacher=teacher_obj)
 
-
-@app.route('/delete_teacher/<int:teacher_id_param>', methods=['POST']) # Renamed param
+@app.route('/delete_teacher/<int:teacher_id_param>', methods=['POST'])
 def delete_teacher(teacher_id_param):
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         return jsonify({'success': False, 'message': 'केवल Teachers को अनुमति है!'})
-
     try:
-        teacher_obj = Teacher.query.get_or_404(teacher_id_param) # Renamed
-        teacher_name_deleted = teacher_obj.name # Renamed
-
-        # Delete teacher photo if exists
+        teacher_obj = Teacher.query.get_or_404(teacher_id_param)
+        name = teacher_obj.name
         if teacher_obj.photo_path:
-            try:
-                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], teacher_obj.photo_path))
-            except OSError as e:
-                print(f"Error deleting teacher photo file {teacher_obj.photo_path}: {e}")
-
+            try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], teacher_obj.photo_path))
+            except OSError as e: print(f"Error deleting teacher photo {teacher_obj.photo_path}: {e}")
         db.session.delete(teacher_obj)
         db.session.commit()
-
-        return jsonify({'success': True, 'message': f'Teacher {teacher_name_deleted} successfully deleted!'})
-
+        return jsonify({'success': True, 'message': f'Teacher {name} deleted!'})
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
-
+        db.session.rollback(); return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 @app.route('/detect_face_realtime', methods=['POST'])
 def detect_face_realtime():
-    """Real-time face detection endpoint for UI feedback"""
+    print("[App] /detect_face_realtime called")
     try:
         data = request.get_json()
         if not data or 'image' not in data:
             return jsonify({'face_detected': False, 'message': 'No image data'})
 
-        image_cv = face_utils.base64_to_image(data['image']) # OpenCV image
+        image_cv = face_utils.base64_to_image(data['image'])
         if image_cv is None:
             return jsonify({'face_detected': False, 'message': 'Invalid image format'})
 
-        # Use the new simplified detection
         detection_result = face_utils.detect_faces_advanced(image_cv)
+        # print(f"[App] Realtime detection result: {detection_result}")
         
-        if detection_result['faces_found']:
-            if detection_result['multiple_faces']:
-                return jsonify({
-                    'face_detected': False, # Technically detected, but not valid for single user
-                    'message': f'Multiple faces ({detection_result["face_count"]}). One person please.',
-                    'face_count': detection_result['face_count']
-                })
+        if detection_result.get('faces_found'):
+            if detection_result.get('multiple_faces'):
+                return jsonify({'face_detected': False, 'message': f'Multiple faces ({detection_result["face_count"]}).', 'face_count': detection_result["face_count"]})
             
-            # Get face coordinates for overlay from dlib_face_locations
-            # dlib_face_locations are (top, right, bottom, left)
             face_coords = None
-            if detection_result['dlib_face_locations']:
+            if detection_result.get('dlib_face_locations') and detection_result['dlib_face_locations']:
                 top, right, bottom, left = detection_result['dlib_face_locations'][0]
                 img_h, img_w = image_cv.shape[:2]
-                
                 face_coords = {
-                    'x': (left / img_w) * 100,
-                    'y': (top / img_h) * 100,
-                    'width': ((right - left) / img_w) * 100,
-                    'height': ((bottom - top) / img_h) * 100
+                    'x': (left / img_w) * 100, 'y': (top / img_h) * 100,
+                    'width': ((right - left) / img_w) * 100, 'height': ((bottom - top) / img_h) * 100
                 }
-            
-            return jsonify({
-                'face_detected': True,
-                'message': 'Face detected!',
-                'face_coords': face_coords,
-                'quality': 'good' # Assuming quality is good if detected by new method
-            })
+            return jsonify({'face_detected': True, 'message': 'Face detected!', 'face_coords': face_coords, 'quality': 'good'})
         else:
-            return jsonify({
-                'face_detected': False,
-                'message': 'No face detected. Position face in camera.'
-            })
-
+            return jsonify({'face_detected': False, 'message': 'No face detected.'})
     except Exception as e:
-        print(f"Error in /detect_face_realtime: {e}")
+        print(f"Error in /detect_face_realtime: {e}"); traceback.print_exc()
         return jsonify({'face_detected': False, 'message': f'Detection error: {str(e)}'})
 
-# --- Debug and Test Routes (Kept from original, may need adjustment for new face_utils) ---
 @app.route('/debug_face_test')
 def debug_face_test():
     if 'user_id' not in session or session.get('user_type') != 'student':
         return jsonify({'error': 'Please login as student first'})
-
     student_obj = Student.query.get(session['user_id'])
     if not student_obj: return jsonify({'error': 'Student not found'})
-    if not student_obj.get_face_encoding().any(): return jsonify({'error': 'No face encoding for student'})
-
+    
     stored_encoding = student_obj.get_face_encoding()
-    # compare_faces returns boolean, compare_faces_advanced returns (bool, similarity)
-    is_match, similarity = face_utils.compare_faces_advanced(stored_encoding, stored_encoding, tolerance=0.6)
+    if stored_encoding is None or not stored_encoding.any(): # Check if None or empty
+         return jsonify({'error': f'No face encoding found for student {student_obj.name}'})
 
+    is_match, similarity = face_utils.compare_faces_advanced(stored_encoding, stored_encoding, tolerance=0.6)
     return jsonify({
-        'student': student_obj.name,
-        'roll_number': student_obj.roll_number,
-        'encoding_shape': stored_encoding.shape if stored_encoding is not None else "N/A",
-        'self_match_status': is_match,
-        'self_match_similarity': similarity,
-        'tolerance': 0.6,
+        'student': student_obj.name, 'roll_number': student_obj.roll_number,
+        'encoding_shape': stored_encoding.shape,
+        'self_match_status': is_match, 'self_match_similarity': similarity, 'tolerance': 0.6,
         'config_tolerance': app.config.get('FACE_RECOGNITION_TOLERANCE'),
-        'debug_mode': app.config.get('DEBUG_MODE', False),
-        'bypass_face_recognition': app.config.get('BYPASS_FACE_RECOGNITION', False),
-        'disable_anti_spoofing': app.config.get('DISABLE_ANTI_SPOOFING', False)
+        'debug_mode': app.config.get('DEBUG_MODE'),
+        'bypass_face_recognition': app.config.get('BYPASS_FACE_RECOGNITION'),
+        'disable_anti_spoofing': app.config.get('DISABLE_ANTI_SPOOFING')
     })
 
-@app.route('/toggle_production_mode') # This name is a bit misleading, it toggles debug features
+@app.route('/toggle_production_mode')
 def toggle_production_mode():
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         return jsonify({'error': 'Only teachers can toggle debug modes'})
-
     app.config['BYPASS_FACE_RECOGNITION'] = not app.config.get('BYPASS_FACE_RECOGNITION', False)
     app.config['DISABLE_ANTI_SPOOFING'] = not app.config.get('DISABLE_ANTI_SPOOFING', False)
-    # Ensure ULTRA_RELAXED_MODE is also toggled if DISABLE_ANTI_SPOOFING is
-    if app.config['DISABLE_ANTI_SPOOFING']:
-        app.config['ULTRA_RELAXED_MODE'] = True
-    else: # If enabling anti-spoofing, turn off ultra-relaxed unless specifically set
-        app.config['ULTRA_RELAXED_MODE'] = app.config.get('RELAXED_ANTI_SPOOFING', False)
-
-
+    if app.config['DISABLE_ANTI_SPOOFING']: app.config['ULTRA_RELAXED_MODE'] = True
+    else: app.config['ULTRA_RELAXED_MODE'] = app.config.get('RELAXED_ANTI_SPOOFING', False)
     return jsonify({
         'message': 'Debug modes toggled',
         'bypass_face_recognition': app.config.get('BYPASS_FACE_RECOGNITION'),
@@ -995,11 +679,9 @@ def toggle_production_mode():
 def emergency_bypass():
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         return jsonify({'error': 'Only teachers can use emergency bypass'})
-
     app.config['BYPASS_FACE_RECOGNITION'] = True
     app.config['DISABLE_ANTI_SPOOFING'] = True
-    app.config['ULTRA_RELAXED_MODE'] = True # Part of disabling anti-spoofing effectively
-    # app.config['DISABLE_PRIVACY_CHECK'] = True # This was in original, but no privacy check implemented
+    app.config['ULTRA_RELAXED_MODE'] = True
     print("🚨 EMERGENCY BYPASS ACTIVATED 🚨")
     return jsonify({
         'message': 'Emergency bypass activated - Face Rec & Anti-Spoofing Bypassed/Disabled',
@@ -1013,26 +695,55 @@ def emergency_bypass():
 def debug_system_status():
     if 'user_id' not in session or session.get('user_type') != 'teacher':
         return jsonify({'error': 'Only teachers can access debug status'})
+    
+    config_subset = {key: val for key, val in app.config.items() if isinstance(val, (str, int, float, bool, list, dict, type(None))) and key.isupper()}
+
     return jsonify({
-        'system_status': 'operational',
-        'face_recognition_ready': True, # Basic check
-        'config': {key: val for key, val in app.config.items() if key.isupper()},
+        'system_status': 'operational', 'face_recognition_ready': True,
+        'config': config_subset,
         'database_tables': {
-            'students': Student.query.count(),
-            'teachers': Teacher.query.count(),
+            'students': Student.query.count(), 'teachers': Teacher.query.count(),
             'attendance': Attendance.query.count()
         }
     })
 
-@app.route('/fix_camera_permissions') # Kept as is
+@app.route('/fix_camera_permissions')
 def fix_camera_permissions():
     return """
-    <html>...
+    <html>
+    <head><title>Fix Camera Issues</title></head>
+    <body style="font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto;">
+        <h1>🔧 Fix Camera Permission Issues</h1>
+        <h2>Chrome/Edge:</h2><ol><li>Click the camera icon in the address bar</li><li>Select "Always allow" for camera access</li><li>Refresh the page</li></ol>
+        <h2>Firefox:</h2><ol><li>Click the shield icon in the address bar</li><li>Click "Turn off Blocking for this site"</li><li>Refresh the page</li></ol>
+        <h2>Safari:</h2><ol><li>Go to Safari > Preferences > Websites > Camera</li><li>Set this website to "Allow"</li><li>Refresh the page</li></ol>
+        <h2>Still having issues?</h2><ul><li>Check if another application is using your camera</li><li>Try restarting your browser</li><li>Make sure your camera is properly connected</li><li>Try using a different browser</li></ul>
+        <p><a href="/" style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">← Back to App</a></p>
+    </body>
     </html>
     """
 
+@app.route('/toggle_relaxed_mode') # This was defined twice, removed the second definition
+def toggle_relaxed_mode():
+    if 'user_id' not in session or session.get('user_type') != 'teacher':
+        return jsonify({'error': 'Only teachers can toggle relaxed mode'})
+    app.config['RELAXED_ANTI_SPOOFING'] = not app.config.get('RELAXED_ANTI_SPOOFING', False)
+    # If relaxed anti-spoofing is turned on, ultra_relaxed_mode should also be on for consistency if anti-spoofing isn't disabled
+    if app.config['RELAXED_ANTI_SPOOFING'] and not app.config['DISABLE_ANTI_SPOOFING']:
+        app.config['ULTRA_RELAXED_MODE'] = True
+    elif not app.config['DISABLE_ANTI_SPOOFING']: # If turning relaxed off, and anti-spoofing is enabled, turn ultra_relaxed off
+        app.config['ULTRA_RELAXED_MODE'] = False
+
+    return jsonify({
+        'message': f'Relaxed anti-spoofing mode {"enabled" if app.config.get("RELAXED_ANTI_SPOOFING") else "disabled"}',
+        'relaxed_anti_spoofing': app.config.get('RELAXED_ANTI_SPOOFING'),
+        'ultra_relaxed_mode': app.config.get('ULTRA_RELAXED_MODE'),
+        'mode': 'RELAXED_DEVELOPMENT' if app.config.get('RELAXED_ANTI_SPOOFING') else 'STANDARD'
+    })
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all() # Ensure tables are created on run
+        # The create_tables() function handles this via @app.before_request
+        # db.create_all() 
+        pass
     app.run(debug=app.config.get('DEBUG_MODE', True), host='0.0.0.0', port=5000)
