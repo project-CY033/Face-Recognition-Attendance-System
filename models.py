@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
+import numpy as np
 
 db = SQLAlchemy()
 
@@ -26,7 +27,6 @@ class Student(db.Model):
     def get_face_encoding(self):
         """Convert JSON string back to numpy array"""
         if self.face_encoding:
-            import numpy as np
             return np.array(json.loads(self.face_encoding))
         return None
 
@@ -48,7 +48,6 @@ class Teacher(db.Model):
 
     def get_face_encoding(self):
         if self.face_encoding:
-            import numpy as np
             return np.array(json.loads(self.face_encoding))
         return None
 
@@ -57,11 +56,9 @@ class Attendance(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     roll_number = db.Column(db.String(20), nullable=False)
     student_name = db.Column(db.String(100), nullable=False)
-    date = db.Column(db.Date, default=datetime.utcnow().date)
-    time_in = db.Column(db.Time, default=datetime.utcnow().time)
+    date = db.Column(db.Date, default=lambda: datetime.utcnow().date()) # Use lambda for dynamic default
+    time_in = db.Column(db.Time, default=lambda: datetime.utcnow().time()) # Use lambda for dynamic default
     status = db.Column(db.String(20), default='Present')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     student = db.relationship('Student', backref=db.backref('attendances', lazy=True))
-
-
