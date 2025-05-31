@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Face Recognition Attendance System{% endblock %}</title>
-
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -18,105 +21,132 @@
                 extend: {
                     colors: {
                         primary: '#3B82F6',
-                        secondary: '#10B981',
+                        secondary: '#059669',
                         accent: '#F59E0B',
-                        danger: '#EF4444',
-                        dark: '#1F2937',
-                        light: '#F9FAFB'
+                        danger: '#DC2626'
                     },
-                    fontFamily: {
-                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'pulse-slow': 'pulse 2s infinite'
                     }
                 }
             }
         }
     </script>
-
-
-    {% block extra_head %}{% endblock %}
+    
+    {% block head %}{% endblock %}
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-primary shadow-lg">
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="{{ url_for('index') }}" class="flex items-center text-white text-xl font-bold hover:text-blue-200 transition-colors">
-                        <i class="fas fa-user-check mr-2"></i>
-                        Face Attendance System
+                    <a href="{{ url_for('index') }}" class="flex items-center space-x-2">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-check text-white text-lg"></i>
+                        </div>
+                        <span class="text-xl font-bold text-gray-800">SmartAttendance</span>
                     </a>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-6">
+                    {% if session.user_id %}
+                        {% if session.user_type == 'student' %}
+                            <a href="{{ url_for('student_dashboard') }}" class="nav-link">
+                                <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                            </a>
+                            <a href="{{ url_for('mark_attendance') }}" class="nav-link">
+                                <i class="fas fa-camera mr-1"></i>Mark Attendance
+                            </a>
+                            <a href="{{ url_for('view_attendance') }}" class="nav-link">
+                                <i class="fas fa-list mr-1"></i>View Records
+                            </a>
+                        {% elif session.user_type == 'teacher' %}
+                            <a href="{{ url_for('teacher_dashboard') }}" class="nav-link">
+                                <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                            </a>
+                            <a href="{{ url_for('manage_students') }}" class="nav-link">
+                                <i class="fas fa-users mr-1"></i>Manage Students
+                            </a>
+                            <a href="{{ url_for('view_attendance') }}" class="nav-link">
+                                <i class="fas fa-list mr-1"></i>View Attendance
+                            </a>
+                        {% endif %}
+                        
+                        <!-- User Menu -->
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">
+                                <i class="fas fa-user mr-1"></i>{{ session.user_name }}
+                            </span>
+                            <a href="{{ url_for('logout') }}" class="btn-danger text-sm">
+                                <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                            </a>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('index') }}" class="nav-link">
+                            <i class="fas fa-home mr-1"></i>Home
+                        </a>
+                        <a href="{{ url_for('student_register') }}" class="nav-link">
+                            <i class="fas fa-user-plus mr-1"></i>Register
+                        </a>
+                    {% endif %}
                 </div>
 
                 <!-- Mobile menu button -->
-                <div class="md:hidden flex items-center">
-                    <button id="mobile-menu-button" class="text-white hover:text-blue-200 focus:outline-none focus:text-blue-200">
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                 </div>
-
-                <!-- Desktop menu -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="{{ url_for('index') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-home mr-1"></i>Home
-                    </a>
-                    {% if session.get('user_type') == 'student' %}
-                    <a href="{{ url_for('student_dashboard') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-                    </a>
-                    <a href="{{ url_for('mark_attendance') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-camera mr-1"></i>Mark Attendance
-                    </a>
-                    <a href="{{ url_for('view_attendance') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-list mr-1"></i>View Attendance
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-sign-out-alt mr-1"></i>Logout
-                    </a>
-                    {% elif session.get('user_type') == 'teacher' %}
-                    <a href="{{ url_for('teacher_dashboard') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-                    </a>
-                    <a href="{{ url_for('database_viewer') }}" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-database mr-1"></i>Database Management
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-sign-out-alt mr-1"></i>Logout
-                    </a>
-                    {% endif %}
-                </div>
             </div>
+        </div>
 
-            <!-- Mobile menu -->
-            <div id="mobile-menu" class="md:hidden hidden">
-                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                    <a href="{{ url_for('index') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden bg-white border-t border-gray-200 hidden">
+            <div class="px-4 py-3 space-y-2">
+                {% if session.user_id %}
+                    {% if session.user_type == 'student' %}
+                        <a href="{{ url_for('student_dashboard') }}" class="mobile-nav-link">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('mark_attendance') }}" class="mobile-nav-link">
+                            <i class="fas fa-camera mr-2"></i>Mark Attendance
+                        </a>
+                        <a href="{{ url_for('view_attendance') }}" class="mobile-nav-link">
+                            <i class="fas fa-list mr-2"></i>View Records
+                        </a>
+                    {% elif session.user_type == 'teacher' %}
+                        <a href="{{ url_for('teacher_dashboard') }}" class="mobile-nav-link">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('manage_students') }}" class="mobile-nav-link">
+                            <i class="fas fa-users mr-2"></i>Manage Students
+                        </a>
+                        <a href="{{ url_for('view_attendance') }}" class="mobile-nav-link">
+                            <i class="fas fa-list mr-2"></i>View Attendance
+                        </a>
+                    {% endif %}
+                    
+                    <div class="border-t border-gray-200 pt-2 mt-2">
+                        <div class="text-sm text-gray-600 mb-2">
+                            <i class="fas fa-user mr-1"></i>{{ session.user_name }}
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="mobile-nav-link text-red-600">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('index') }}" class="mobile-nav-link">
                         <i class="fas fa-home mr-2"></i>Home
                     </a>
-                    {% if session.get('user_type') == 'student' %}
-                    <a href="{{ url_for('student_dashboard') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    <a href="{{ url_for('student_register') }}" class="mobile-nav-link">
+                        <i class="fas fa-user-plus mr-2"></i>Register
                     </a>
-                    <a href="{{ url_for('mark_attendance') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-camera mr-2"></i>Mark Attendance
-                    </a>
-                    <a href="{{ url_for('view_attendance') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-list mr-2"></i>View Attendance
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                    </a>
-                    {% elif session.get('user_type') == 'teacher' %}
-                    <a href="{{ url_for('teacher_dashboard') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                    </a>
-                    <a href="{{ url_for('database_viewer') }}" class="text-white hover:text-blue-200 block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-database mr-2"></i>Database Management
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white block px-3 py-2 rounded-md text-base font-medium">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                    </a>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
         </div>
     </nav>
@@ -126,28 +156,14 @@
         {% if messages %}
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
                 {% for category, message in messages %}
-                    <div class="mb-4 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-50 border-red-400 text-red-700{% elif category == 'success' %}bg-green-50 border-green-400 text-green-700{% elif category == 'warning' %}bg-yellow-50 border-yellow-400 text-yellow-700{% else %}bg-blue-50 border-blue-400 text-blue-700{% endif %} relative">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                {% if category == 'error' %}
-                                    <i class="fas fa-exclamation-circle text-red-400"></i>
-                                {% elif category == 'success' %}
-                                    <i class="fas fa-check-circle text-green-400"></i>
-                                {% elif category == 'warning' %}
-                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
-                                {% else %}
-                                    <i class="fas fa-info-circle text-blue-400"></i>
-                                {% endif %}
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm font-medium">{{ message }}</p>
-                            </div>
-                            <div class="ml-auto pl-3">
-                                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="inline-flex {% if category == 'error' %}text-red-400 hover:text-red-600{% elif category == 'success' %}text-green-400 hover:text-green-600{% elif category == 'warning' %}text-yellow-400 hover:text-yellow-600{% else %}text-blue-400 hover:text-blue-600{% endif %} focus:outline-none">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'error' if category == 'error' else 'info' }} animate-fade-in">
+                        <div class="flex items-center">
+                            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'error' else 'info-circle' }} mr-2"></i>
+                            <span>{{ message }}</span>
                         </div>
+                        <button onclick="this.parentElement.remove()" class="ml-auto">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 {% endfor %}
             </div>
@@ -155,30 +171,50 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <main>
+    <main class="flex-grow">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-8 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="text-center">
-                <p class="text-gray-300">&copy; 2024 Face Recognition Attendance System. All rights reserved.</p>
-                <p class="text-gray-400 text-sm mt-2">Developed By Rajat Banshiwal</p>
+                <div class="flex items-center justify-center space-x-2 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-check text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold">SmartAttendance</span>
+                </div>
+                <p class="text-gray-400 mb-4">Intelligent face recognition attendance management system</p>
+                <div class="flex justify-center space-x-6 text-sm text-gray-400">
+                    <span><i class="fas fa-shield-alt mr-1"></i>Secure</span>
+                    <span><i class="fas fa-bolt mr-1"></i>Fast</span>
+                    <span><i class="fas fa-mobile-alt mr-1"></i>Mobile-Friendly</span>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- Mobile Menu Toggle Script -->
+    <!-- Scripts -->
     <script>
+        // Mobile menu toggle
         document.getElementById('mobile-menu-button').addEventListener('click', function() {
             const mobileMenu = document.getElementById('mobile-menu');
             mobileMenu.classList.toggle('hidden');
         });
+
+        // Auto-hide flash messages
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                alert.style.opacity = '0';
+                setTimeout(function() {
+                    alert.remove();
+                }, 300);
+            });
+        }, 5000);
     </script>
 
-
-
-    {% block extra_scripts %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html>

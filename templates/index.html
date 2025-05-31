@@ -1,185 +1,260 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Face Recognition Attendance System{% endblock %}
+{% block title %}Home - SmartAttendance{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col lg:flex-row items-center justify-between min-h-screen py-12">
-            <div class="lg:w-1/2 lg:pr-8">
-                <div class="text-center lg:text-left">
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-                        <i class="fas fa-user-check text-primary mr-4"></i>
-                        Face Recognition Attendance System
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+            <div class="text-center">
+                <!-- Logo and Brand -->
+                <div class="flex items-center justify-center space-x-4 mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-user-check text-white text-2xl"></i>
+                    </div>
+                    <h1 class="text-4xl lg:text-6xl font-bold text-gray-900">
+                        Smart<span class="text-primary">Attendance</span>
                     </h1>
-                    <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-                        Modern, secure, and efficient attendance tracking using advanced face recognition technology.
-                        Join thousands of students and teachers already using our system.
-                    </p>
+                </div>
 
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                        <button onclick="openModal('signupModal')" class="bg-primary hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-user-plus mr-2"></i>
-                            Get Started
-                        </button>
-                        <button onclick="openModal('loginModal')" class="border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold py-4 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-sign-in-alt mr-2"></i>
-                            Login
-                        </button>
+                <!-- Tagline -->
+                <p class="text-xl lg:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
+                    Revolutionary face recognition attendance system for modern institutions
+                </p>
+
+                <!-- Features Grid -->
+                <div class="grid md:grid-cols-3 gap-8 mb-16">
+                    <div class="feature-card">
+                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-bolt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Lightning Fast</h3>
+                        <p class="text-gray-600">Mark attendance in seconds with our advanced face recognition technology</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-shield-alt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Secure & Reliable</h3>
+                        <p class="text-gray-600">Military-grade security with anti-spoofing protection</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chart-bar text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Smart Analytics</h3>
+                        <p class="text-gray-600">Comprehensive reports and attendance tracking</p>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="lg:w-1/2 mt-12 lg:mt-0">
-                <div class="text-center">
-                    <div class="bg-white p-8 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-camera text-6xl text-primary mb-6"></i>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-4">Live Face Detection</h3>
-                        <p class="text-gray-600 leading-relaxed">
-                            Our advanced AI ensures only live faces are accepted,
-                            preventing photo spoofing and maintaining security.
-                        </p>
+    <!-- Login/Register Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        {% if not session.user_id %}
+            <!-- Login Forms -->
+            <div class="grid lg:grid-cols-2 gap-8 mb-16">
+                <!-- Student Login -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary to-blue-600 px-6 py-8 text-white text-center">
+                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-graduation-cap text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2">Student Portal</h2>
+                        <p class="text-blue-100">Access your attendance dashboard</p>
+                    </div>
+                    
+                    <div class="p-8">
+                        <form method="POST" action="{{ url_for('login') }}" class="space-y-6">
+                            <input type="hidden" name="user_type" value="student">
+                            
+                            <div>
+                                <label for="student_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-id-card mr-1"></i>Roll Number
+                                </label>
+                                <input type="text" id="student_id" name="user_id" required
+                                       placeholder="Enter your roll number"
+                                       class="input-field">
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full">
+                                <i class="fas fa-sign-in-alt mr-2"></i>
+                                Login as Student
+                            </button>
+                        </form>
+
+                        <div class="mt-6 text-center">
+                            <p class="text-gray-600 mb-3">New student?</p>
+                            <a href="{{ url_for('student_register') }}" class="btn-outline">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                Register Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teacher Login -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-gradient-to-r from-secondary to-green-600 px-6 py-8 text-white text-center">
+                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chalkboard-teacher text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2">Teacher Portal</h2>
+                        <p class="text-green-100">Manage students and attendance</p>
+                    </div>
+                    
+                    <div class="p-8">
+                        <form method="POST" action="{{ url_for('login') }}" class="space-y-6">
+                            <input type="hidden" name="user_type" value="teacher">
+                            
+                            <div>
+                                <label for="teacher_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-id-badge mr-1"></i>Teacher ID
+                                </label>
+                                <input type="text" id="teacher_id" name="user_id" required
+                                       placeholder="Enter your teacher ID"
+                                       class="input-field">
+                            </div>
+
+                            <button type="submit" class="btn-secondary w-full">
+                                <i class="fas fa-sign-in-alt mr-2"></i>
+                                Login as Teacher
+                            </button>
+                        </form>
+
+                        <div class="mt-6 text-center">
+                            <p class="text-gray-600 mb-3">New teacher?</p>
+                            <a href="{{ url_for('teacher_register') }}" class="btn-outline">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                Register Now
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
+        {% else %}
+            <!-- Welcome Back Section -->
+            <div class="text-center mb-16">
+                <div class="bg-white rounded-2xl shadow-xl p-8 max-w-2xl mx-auto">
+                    <div class="w-20 h-20 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-user text-white text-3xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                        Welcome back, {{ session.user_name }}!
+                    </h2>
+                    <p class="text-gray-600 mb-8">Ready to continue with your attendance management?</p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        {% if session.user_type == 'student' %}
+                            <a href="{{ url_for('student_dashboard') }}" class="btn-primary">
+                                <i class="fas fa-tachometer-alt mr-2"></i>
+                                Go to Dashboard
+                            </a>
+                            <a href="{{ url_for('mark_attendance') }}" class="btn-secondary">
+                                <i class="fas fa-camera mr-2"></i>
+                                Mark Attendance
+                            </a>
+                        {% elif session.user_type == 'teacher' %}
+                            <a href="{{ url_for('teacher_dashboard') }}" class="btn-primary">
+                                <i class="fas fa-tachometer-alt mr-2"></i>
+                                Go to Dashboard
+                            </a>
+                            <a href="{{ url_for('manage_students') }}" class="btn-secondary">
+                                <i class="fas fa-users mr-2"></i>
+                                Manage Students
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Stats Section -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-16">
+            <div class="text-center mb-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">System Statistics</h3>
+                <p class="text-gray-600">Real-time insights into our attendance system</p>
+            </div>
+            
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="stat-card">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">{{ total_students or 0 }}</div>
+                    <div class="text-sm text-gray-600">Total Students</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">{{ today_present or 0 }}</div>
+                    <div class="text-sm text-gray-600">Present Today</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-percentage text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">{{ attendance_rate or 0 }}%</div>
+                    <div class="text-sm text-gray-600">Attendance Rate</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-clock text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">&lt;1s</div>
+                    <div class="text-sm text-gray-600">Recognition Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technology Section -->
+        <div class="text-center">
+            <h3 class="text-2xl font-bold text-gray-900 mb-8">Powered by Advanced Technology</h3>
+            
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="tech-card">
+                    <i class="fas fa-eye text-4xl text-blue-600 mb-4"></i>
+                    <h4 class="font-semibold text-gray-900">Computer Vision</h4>
+                </div>
+
+                <div class="tech-card">
+                    <i class="fas fa-brain text-4xl text-green-600 mb-4"></i>
+                    <h4 class="font-semibold text-gray-900">Machine Learning</h4>
+                </div>
+
+                <div class="tech-card">
+                    <i class="fas fa-mobile-alt text-4xl text-purple-600 mb-4"></i>
+                    <h4 class="font-semibold text-gray-900">Mobile Ready</h4>
+                </div>
+
+                <div class="tech-card">
+                    <i class="fas fa-cloud text-4xl text-orange-600 mb-4"></i>
+                    <h4 class="font-semibold text-gray-900">Cloud Based</h4>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Features Section -->
-<section class="py-20 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Why Choose Our System?</h2>
-            <p class="text-xl text-gray-600 max-w-3xl mx-auto">Experience the future of attendance management with cutting-edge technology</p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-8">
-            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 text-center group">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-green-200 transition-colors duration-300">
-                    <i class="fas fa-shield-alt text-3xl text-green-600"></i>
-                </div>
-                <h4 class="text-2xl font-bold text-gray-900 mb-4">Secure & Reliable</h4>
-                <p class="text-gray-600 leading-relaxed">Advanced liveness detection prevents photo spoofing and ensures authentic attendance with military-grade security.</p>
-            </div>
-
-            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 text-center group">
-                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-yellow-200 transition-colors duration-300">
-                    <i class="fas fa-clock text-3xl text-yellow-600"></i>
-                </div>
-                <h4 class="text-2xl font-bold text-gray-900 mb-4">Real-time Tracking</h4>
-                <p class="text-gray-600 leading-relaxed">Instant attendance marking with real-time updates and comprehensive reporting for better insights.</p>
-            </div>
-
-            <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 text-center group">
-                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors duration-300">
-                    <i class="fas fa-search text-3xl text-blue-600"></i>
-                </div>
-                <h4 class="text-2xl font-bold text-gray-900 mb-4">Easy Search</h4>
-                <p class="text-gray-600 leading-relaxed">Quick attendance lookup by roll number with detailed filtering options and advanced analytics.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Signup Modal -->
-<div id="signupModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex justify-between items-center">
-                <h3 class="text-2xl font-bold text-gray-900">Choose Your Role</h3>
-                <button onclick="closeModal('signupModal')" class="text-gray-400 hover:text-gray-600 text-2xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        <div class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-                <a href="{{ url_for('student_register') }}" class="group border-2 border-blue-200 hover:border-blue-400 rounded-xl p-6 text-center transition-all duration-200 hover:shadow-lg">
-                    <i class="fas fa-user-graduate text-4xl text-blue-600 mb-4 group-hover:scale-110 transition-transform duration-200"></i>
-                    <h5 class="text-lg font-semibold text-gray-900 mb-2">Student</h5>
-                    <p class="text-sm text-gray-600">Register as a student</p>
-                </a>
-                <a href="{{ url_for('teacher_register') }}" class="group border-2 border-green-200 hover:border-green-400 rounded-xl p-6 text-center transition-all duration-200 hover:shadow-lg">
-                    <i class="fas fa-chalkboard-teacher text-4xl text-green-600 mb-4 group-hover:scale-110 transition-transform duration-200"></i>
-                    <h5 class="text-lg font-semibold text-gray-900 mb-2">Teacher</h5>
-                    <p class="text-sm text-gray-600">Register as a teacher</p>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Login Modal -->
-<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex justify-between items-center">
-                <h3 class="text-2xl font-bold text-gray-900">Login to Your Account</h3>
-                <button onclick="closeModal('loginModal')" class="text-gray-400 hover:text-gray-600 text-2xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        <div class="p-6">
-            <form method="POST" action="{{ url_for('login') }}" class="space-y-6">
-                <div>
-                    <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">Roll Number / Teacher ID</label>
-                    <input type="text" id="user_id" name="user_id" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-                </div>
-                <div>
-                    <label for="user_type" class="block text-sm font-medium text-gray-700 mb-2">Login as</label>
-                    <select id="user_type" name="user_type" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-                        <option value="">Choose...</option>
-                        <option value="student">Student</option>
-                        <option value="teacher">Teacher</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Login
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal JavaScript -->
-<script>
-function openModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+<style>
+.feature-card {
+    @apply bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.body.style.overflow = 'auto';
+.stat-card {
+    @apply text-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200;
 }
 
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('bg-black')) {
-        const modals = ['signupModal', 'loginModal'];
-        modals.forEach(modalId => {
-            if (!document.getElementById(modalId).classList.contains('hidden')) {
-                closeModal(modalId);
-            }
-        });
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modals = ['signupModal', 'loginModal'];
-        modals.forEach(modalId => {
-            if (!document.getElementById(modalId).classList.contains('hidden')) {
-                closeModal(modalId);
-            }
-        });
-    }
-});
-</script>
+.tech-card {
+    @apply bg-gray-50 p-6 rounded-xl text-center hover:bg-white hover:shadow-lg transition-all duration-300;
+}
+</style>
 {% endblock %}

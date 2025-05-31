@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students - SmartAttendance{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-6 lg:mb-0">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <i class="fas fa-users text-green-600 text-2xl"></i>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
+                        Manage Students
+                    </h1>
+                    <p class="text-xl text-gray-600">View and manage student information and records</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <a href="{{ url_for('teacher_dashboard') }}"
+                       class="inline-flex items-center bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg shadow-lg border border-gray-200 transition-all duration-200 hover:shadow-xl">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="mb-8">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-secondary to-green-600 px-6 py-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center mb-2 sm:mb-0">
+                            <i class="fas fa-search mr-3"></i>
+                            Search Students
+                        </h2>
+                        <div class="text-green-100 text-sm">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Search by name, roll number, or email
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <form method="GET" id="searchForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Search Query -->
+                            <div>
+                                <label for="search" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-search mr-1"></i>Search Query
+                                </label>
+                                <input type="text" id="search" name="search"
+                                       value="{{ request.args.get('search', '') }}"
+                                       placeholder="Name, roll number, or email"
+                                       class="input-field">
+                            </div>
+
+                            <!-- Course Filter -->
+                            <div>
+                                <label for="course" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-graduation-cap mr-1"></i>Course Filter
+                                </label>
+                                <select id="course" name="course" class="input-field">
+                                    <option value="">All Courses</option>
+                                    {% for course in courses %}
+                                    <option value="{{ course }}" {% if request.args.get('course') == course %}selected{% endif %}>
+                                        {{ course }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Search Button -->
+                            <div class="flex items-end">
+                                <button type="submit"
+                                        class="w-full bg-secondary hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center">
+                                    <i class="fas fa-search mr-2"></i>Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Clear Filters -->
+                        <div class="flex justify-start">
+                            <a href="{{ url_for('manage_students') }}"
+                               class="inline-flex items-center text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                <i class="fas fa-times mr-2"></i>Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Total Students -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-blue-600 mb-1">{{ students|length }}</h3>
+                    <p class="text-gray-600 text-sm font-medium">
+                        {% if request.args.get('search') or request.args.get('course') %}
+                            Found Students
+                        {% else %}
+                            Total Students
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Active Students -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-user-check text-green-600 text-xl"></i>
+                    </div>
+                    {% set active_students = students | selectattr('is_active', 'equalto', true) | list %}
+                    <h3 class="text-2xl font-bold text-green-600 mb-1">{{ active_students|length }}</h3>
+                    <p class="text-gray-600 text-sm font-medium">Active Students</p>
+                </div>
+
+                <!-- Courses -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-book text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-purple-600 mb-1">{{ courses|length }}</h3>
+                    <p class="text-gray-600 text-sm font-medium">Different Courses</p>
+                </div>
+
+                <!-- Recently Added -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 text-center transform hover:scale-105 transition-transform duration-200">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-user-plus text-orange-600 text-xl"></i>
+                    </div>
+                    {% set recent_students = students | selectattr('created_at') | list %}
+                    {% set this_week = [] %}
+                    {% for student in recent_students %}
+                        {% set days_ago = (moment().date() - student.created_at.date()).days %}
+                        {% if days_ago <= 7 %}
+                            {% set _ = this_week.append(student) %}
+                        {% endif %}
+                    {% endfor %}
+                    <h3 class="text-2xl font-bold text-orange-600 mb-1">
+                        {{ students | selectattr('created_at') | list | length }}
+                    </h3>
+                    <p class="text-gray-600 text-sm font-medium">This Week</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Table -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-900 flex items-center mb-4 sm:mb-0">
+                        <i class="fas fa-table mr-3 text-secondary"></i>
+                        Students Directory
+                    </h2>
+                    <div class="flex gap-3">
+                        <button onclick="exportStudentsCSV()"
+                                class="inline-flex items-center bg-secondary hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                            <i class="fas fa-download mr-2"></i>Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-0">
+                {% if students %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full" id="studentsTable">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-hashtag mr-1"></i>S.No.
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-user mr-1"></i>Student Details
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-id-card mr-1"></i>Roll Number
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-graduation-cap mr-1"></i>Course Details
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-envelope mr-1"></i>Contact
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-calendar mr-1"></i>Registered
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-check-circle mr-1"></i>Status
+                                    </th>
+                                    <th class="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                                        <i class="fas fa-cogs mr-1"></i>Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% for student in students %}
+                                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <td class="px-4 md:px-6 py-4 text-sm text-gray-900 font-medium">
+                                        {{ loop.index }}
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-primary to-blue-600 rounded-full flex items-center justify-center mr-4">
+                                                <span class="text-white font-semibold text-sm">
+                                                    {{ student.name[:2].upper() }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-semibold text-gray-900">{{ student.name }}</div>
+                                                <div class="text-xs text-gray-500">{{ student.subject }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {{ student.roll_number }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4 text-sm text-gray-900">
+                                        <div>
+                                            <div class="font-medium">{{ student.course }}</div>
+                                            <div class="text-xs text-gray-500">
+                                                Year {{ student.year }}, Sem {{ student.semester }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4 text-sm text-gray-600">
+                                        <div>
+                                            <div class="flex items-center mb-1">
+                                                <i class="fas fa-envelope mr-1 text-gray-400 text-xs"></i>
+                                                <span class="text-xs">{{ student.email }}</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <i class="fas fa-phone mr-1 text-gray-400 text-xs"></i>
+                                                <span class="text-xs">{{ student.phone }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4 text-sm text-gray-600">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-calendar mr-2 text-gray-400"></i>
+                                            {{ student.created_at.strftime('%b %d, %Y') }}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                   {% if student.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                            <i class="fas fa-{{ 'check' if student.is_active else 'times' }} mr-1"></i>
+                                            {{ 'Active' if student.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 md:px-6 py-4 text-sm">
+                                        <div class="flex items-center space-x-2">
+                                            <button onclick="viewStudentDetails('{{ student.id }}')"
+                                                    class="inline-flex items-center px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors duration-200"
+                                                    title="View Details">
+                                                <i class="fas fa-eye text-xs"></i>
+                                            </button>
+                                            <button onclick="viewAttendance('{{ student.roll_number }}')"
+                                                    class="inline-flex items-center px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md transition-colors duration-200"
+                                                    title="View Attendance">
+                                                <i class="fas fa-list text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table Footer with Summary -->
+                    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Showing {{ students|length }} student(s)
+                                {% if request.args.get('search') or request.args.get('course') %}
+                                    (filtered results)
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Click actions to view details or attendance
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-users text-4xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Students Found</h3>
+                        {% if request.args.get('search') or request.args.get('course') %}
+                            <p class="text-gray-600 mb-6">No students match your search criteria. Try adjusting your filters.</p>
+                            <a href="{{ url_for('manage_students') }}" class="btn-secondary">
+                                <i class="fas fa-times mr-2"></i>Clear Filters
+                            </a>
+                        {% else %}
+                            <p class="text-gray-600 mb-6">Students will appear here once they register for the system.</p>
+                            <a href="{{ url_for('student_register') }}" class="btn-secondary">
+                                <i class="fas fa-user-plus mr-2"></i>Register First Student
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div id="studentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-900">Student Details</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="studentDetails">
+            <!-- Student details will be loaded here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Export students to CSV
+function exportStudentsCSV() {
+    const table = document.getElementById('studentsTable');
+    let csv = [];
+    
+    // Simplified headers for CSV
+    const headers = ['S.No.', 'Name', 'Roll Number', 'Course', 'Year', 'Semester', 'Email', 'Phone', 'Status', 'Registered Date'];
+    csv.push(headers.join(','));
+    
+    // Get table data (simplified)
+    table.querySelectorAll('tbody tr').forEach((tr, index) => {
+        const row = [];
+        const cells = tr.querySelectorAll('td');
+        
+        // Extract data more carefully
+        row.push(index + 1); // S.No.
+        row.push('"' + cells[1].querySelector('.text-sm.font-semibold').textContent.trim() + '"'); // Name
+        row.push(cells[2].textContent.trim()); // Roll Number
+        row.push('"' + cells[3].querySelector('.font-medium').textContent.trim() + '"'); // Course
+        row.push(cells[3].querySelector('.text-xs').textContent.trim()); // Year/Sem
+        row.push(''); // Placeholder for semester (extracted from Year/Sem)
+        row.push('"' + cells[4].querySelector('.fa-envelope').parentElement.textContent.trim() + '"'); // Email
+        row.push('"' + cells[4].querySelector('.fa-phone').parentElement.textContent.trim() + '"'); // Phone
+        row.push(cells[6].textContent.trim()); // Status
+        row.push(cells[5].textContent.trim()); // Registered Date
+        
+        csv.push(row.join(','));
+    });
+    
+    // Create and download CSV
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'students_list_' + new Date().toISOString().split('T')[0] + '.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// View student details (placeholder - would need backend endpoint)
+function viewStudentDetails(studentId) {
+    // This would typically make an API call to get full student details
+    document.getElementById('studentDetails').innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-info-circle text-4xl text-blue-600 mb-4"></i>
+            <h4 class="text-lg font-semibold text-gray-900 mb-2">Feature Coming Soon</h4>
+            <p class="text-gray-600">Detailed student view will be available in the next update.</p>
+        </div>
+    `;
+    document.getElementById('studentModal').classList.remove('hidden');
+}
+
+// View student attendance
+function viewAttendance(rollNumber) {
+    // Redirect to attendance view with student filter
+    window.location.href = `{{ url_for('view_attendance') }}?roll_number=${rollNumber}`;
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('studentModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('studentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+// Initialize search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    const courseSelect = document.getElementById('course');
+    
+    // Auto-submit form on course change
+    courseSelect.addEventListener('change', function() {
+        document.getElementById('searchForm').submit();
+    });
+});
+</script>
+{% endblock %}

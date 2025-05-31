@@ -1,945 +1,402 @@
+
 {% extends "base.html" %}
 
-{% block title %}Mark Attendance - Face Recognition Attendance System{% endblock %}
-
-{% block extra_head %}
-<style>
-    /* Custom styles for camera and animations */
-    #video {
-        width: 100%;
-        max-width: 640px;
-        height: auto;
-        border-radius: 1rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        transition: all 0.3s ease;
-    }
-
-    .camera-container {
-        position: relative;
-        display: inline-block;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
-        border-radius: 1.5rem;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-
-    .camera-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 200px;
-        height: 200px;
-        border: 4px solid #10B981;
-        border-radius: 50%;
-        pointer-events: none;
-        opacity: 0.8;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    }
-
-    .status-indicator {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: 2rem;
-        font-weight: 600;
-        color: white;
-        backdrop-filter: blur(10px);
-        transition: all 0.3s ease;
-        z-index: 10;
-    }
-
-    .status-scanning {
-        background: linear-gradient(135deg, #F59E0B, #D97706);
-        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-    }
-
-    .status-detected {
-        background: linear-gradient(135deg, #10B981, #059669);
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-    }
-
-    .status-error {
-        background: linear-gradient(135deg, #EF4444, #DC2626);
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-    }
-
-    /* Responsive video sizing */
-    @media (max-width: 768px) {
-        .camera-overlay {
-            width: 150px;
-            height: 150px;
-        }
-        .status-indicator {
-            top: 0.5rem;
-            right: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-        }
-    }
-
-    /* Button hover effects */
-    .btn-hover-lift {
-        transition: all 0.3s ease;
-    }
-    .btn-hover-lift:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Instruction cards animation */
-    .instruction-card {
-        transition: all 0.3s ease;
-    }
-    .instruction-card:hover {
-        transform: translateX(5px);
-    }
-</style>
-{% endblock %}
+{% block title %}Mark Attendance - SmartAttendance{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header Section -->
+<div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-                <i class="fas fa-camera text-green-600 text-3xl"></i>
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-primary to-purple-600 rounded-full mb-6 shadow-lg">
+                <i class="fas fa-camera text-white text-3xl"></i>
             </div>
-            <h1 class="text-2xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-                Mark Your Attendance
-            </h1>
-            <p class="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed mb-4">
-                Position your face in the camera frame and wait for our AI to recognize you
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Mark Attendance</h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Use our advanced face recognition system to mark your attendance quickly and securely
             </p>
         </div>
 
-        <div class="grid lg:grid-cols-3 gap-8">
-            <!-- Camera Section -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-video mr-3"></i>
-                            Live Camera Feed
-                        </h2>
+        <!-- Student Info Card -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-primary to-blue-600 px-6 py-4 text-white">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-user text-lg"></i>
                     </div>
-                    <div class="p-6">
-                        <div class="text-center">
-                            <div class="camera-container mb-6 mx-auto">
-                                <video id="video" autoplay muted playsinline class="rounded-xl"></video>
-                                <div class="camera-overlay"></div>
-                                <div id="statusIndicator" class="status-indicator status-scanning">
-                                    <i class="fas fa-search mr-2"></i>Scanning...
-                                </div>
-                            </div>
-
-                            <canvas id="canvas" class="hidden"></canvas>
-
-                            <!-- Camera Controls -->
-                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                                <button id="startCamera" class="btn-hover-lift bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center">
-                                    <i class="fas fa-video mr-2"></i>Start Camera
-                                </button>
-                                <button id="captureBtn" class="btn-hover-lift bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center hidden">
-                                    <i class="fas fa-camera mr-2"></i>Capture & Mark
-                                </button>
-                                <button id="stopCamera" class="btn-hover-lift bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg flex items-center justify-center hidden">
-                                    <i class="fas fa-stop mr-2"></i>Stop Camera
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Instructions Panel -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-2xl shadow-lg h-full">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 rounded-t-2xl">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-info-circle mr-3"></i>
-                            Instructions
-                        </h3>
-                    </div>
-                    <div class="p-6 space-y-6">
-                        <!-- Step 1 -->
-                        <div class="instruction-card flex items-start space-x-4">
-                            <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
-                            <div>
-                                <h4 class="font-semibold text-gray-900 mb-1">Position Yourself</h4>
-                                <p class="text-gray-600 text-sm">Sit or stand directly in front of the camera</p>
-                            </div>
-                        </div>
-
-                        <!-- Step 2 -->
-                        <div class="instruction-card flex items-start space-x-4">
-                            <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
-                            <div>
-                                <h4 class="font-semibold text-gray-900 mb-1">Good Lighting</h4>
-                                <p class="text-gray-600 text-sm">Ensure your face is well-lit and clearly visible</p>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div class="instruction-card flex items-start space-x-4">
-                            <div class="w-8 h-8 bg-yellow-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
-                            <div>
-                                <h4 class="font-semibold text-gray-900 mb-1">Face the Camera</h4>
-                                <p class="text-gray-600 text-sm">Look directly at the camera, not the screen</p>
-                            </div>
-                        </div>
-
-                        <!-- Step 4 -->
-                        <div class="instruction-card flex items-start space-x-4">
-                            <div class="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">4</div>
-                            <div>
-                                <h4 class="font-semibold text-gray-900 mb-1">Stay Still</h4>
-                                <p class="text-gray-600 text-sm">Keep your head steady when capturing</p>
-                            </div>
-                        </div>
-
-                        <!-- Anti-Spoofing Warning -->
-                        <!-- <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-yellow-800">⚠️ Anti-Fake Attendance System</h4>
-                                    <div class="mt-2 text-sm text-yellow-700 space-y-1">
-                                        <div>• फोन से फोटो दिखाना = ❌ REJECTED</div>
-                                        <div>• पासपोर्ट फोटो दिखाना = ❌ REJECTED</div>
-                                        <div>• प्रिंटेड फोटो दिखाना = ❌ REJECTED</div>
-                                        <div>• दूसरे की फोटो दिखाना = ❌ REJECTED</div>
-                                        <div>• केवल लाइव कैमरा = ✅ ACCEPTED</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
-
-                        <!-- Privacy Protection Alert -->
-                        <!-- <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-user-shield text-blue-400"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-blue-800">🔒 Privacy Protection</h4>
-                                    <div class="mt-2 text-sm text-blue-700 space-y-1">
-                                        <div>• केवल अपनी attendance mark करें</div>
-                                        <div>• दूसरे student की attendance mark करना गैरकानूनी है</div>
-                                        <div>• हमारा AI सिस्टम cross-attendance detect करता है</div>
-                                        <div>• Privacy violation पर strict action</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Testing Mode Alert -->
-                        <!-- <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-cog text-blue-400"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-green-800">🛡️ COMPLETE SECURITY MODE</h4>
-                                    <div class="mt-1 text-sm text-green-700 space-y-1">
-                                        <div>• Face recognition enabled (tolerance: 0.7) - केवल सही student का face accept होगा</div>
-                                        <div>• Smart anti-spoofing - Phone photos और printed photos rejected</div>
-                                        <div>• Privacy protection enabled - Cross-student attendance blocked</div>
-                                        <div>• Live camera optimized - Real faces will work smoothly</div>
-                                        <div>• Complete security with user-friendly experience</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>  -->
-
-                        <!-- Production Mode Alert -->
-                        <!-- <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-shield-alt text-green-400"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-green-800">🛡️ OPTIMIZED SECURITY MODE</h4>
-                                    <div class="mt-1 text-sm text-green-700 space-y-1">
-                                        <div>• Face recognition optimized for real faces (tolerance: 0.8)</div>
-                                        <div>• Anti-spoofing with lenient thresholds for live camera</div>
-                                        <div>• Privacy checks enabled (tolerance: 0.6)</div>
-                                        <div>• Liveness detection optimized (2/5 checks required)</div>
-                                        <div>• Balanced security and usability</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
-
-                        <!-- Simple Face Matching System Alert -->
-                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-user-check text-blue-500"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-blue-800">✅ SIMPLE FACE MATCHING SYSTEM</h4>
-                                    <div class="mt-1 text-sm text-blue-700 space-y-1">
-                                        <div>• <strong>Registration Photo</strong> - Photo captured during student registration</div>
-                                        <div>• <strong>Live Face Matching</strong> - Current face matched with registered photo</div>
-                                        <div>• <strong>Simple & Reliable</strong> - Direct face comparison using advanced algorithms</div>
-                                        <div>• <strong>Secure Login</strong> - Only logged-in student can mark their attendance</div>
-                                        <div>• <strong>No Complex Security</strong> - Clean and straightforward approach</div>
-                                        <div>• <strong>User Friendly</strong> - Easy to use for genuine students</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Security Alert -->
-                        <!-- <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-shield-alt text-red-400"></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-semibold text-red-800">🚫 फेक अटेंडेंस की कोशिश न करें!</h4>
-                                    <div class="mt-1 text-sm text-red-700 space-y-1">
-                                        <div>• हमारा AI सिस्टम सभी तरह के फेक अटेंडेंस को detect करता है</div>
-                                        <div>• Multiple security layers से protection</div>
-                                        <div>• Fake attempts automatically rejected</div>
-                                        <div>• सभी attempts logged और monitored हैं</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
+                    <div>
+                        <h2 class="text-xl font-bold">{{ student.name }}</h2>
+                        <p class="text-blue-100">Roll Number: {{ student.roll_number }} | {{ student.course }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Status Messages -->
-        <div id="messageArea" class="mt-8"></div>
-    </div>
-</div>
-
-<script>
-let video = document.getElementById('video');
-let canvas = document.getElementById('canvas');
-let context = canvas.getContext('2d');
-let startBtn = document.getElementById('startCamera');
-let captureBtn = document.getElementById('captureBtn');
-let stopBtn = document.getElementById('stopCamera');
-let statusIndicator = document.getElementById('statusIndicator');
-let messageArea = document.getElementById('messageArea');
-let stream = null;
-let faceDetectionInterval = null;
-let isProcessing = false;
-
-// Initialize camera
-async function initCamera() {
-    try {
-        // Check if browser supports getUserMedia
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('Camera not supported in this browser');
-        }
-
-        // Start camera with enhanced options
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { 
-                width: { ideal: 1280, min: 640 },
-                height: { ideal: 720, min: 480 },
-                facingMode: 'user',
-                frameRate: { ideal: 30, min: 15 }
-            },
-            audio: false
-        });
-
-        video.srcObject = stream;
-        window.currentStream = stream;
-
-        updateStatus('detected', 'Camera ready');
-
-        // Start real-time face detection once video is playing
-        video.addEventListener('loadedmetadata', () => {
-            video.play();
-            startRealTimeFaceDetection();
-        });
-
-        video.addEventListener('canplay', () => {
-            startRealTimeFaceDetection();
-        });
-
-        // Show success message
-        showMessage('success', 'Camera initialized successfully! Position your face in the frame.');
-
-    } catch (error) {
-        console.error('Error accessing camera:', error);
-        updateStatus('error', 'Camera access failed');
-        
-        let errorMessage = 'Camera access failed. ';
-        if (error.name === 'NotAllowedError') {
-            errorMessage += 'Please allow camera permissions and refresh the page.';
-        } else if (error.name === 'NotFoundError') {
-            errorMessage += 'No camera found. Please connect a camera and try again.';
-        } else if (error.name === 'NotReadableError') {
-            errorMessage += 'Camera is being used by another application. Please close other apps and try again.';
-        } else {
-            errorMessage += 'Please check your camera settings and try again.';
-        }
-        
-        showError(errorMessage);
-    }
-}
-
-// Initialize face detection overlay
-let faceDetectionOverlay = document.createElement('div');
-    faceDetectionOverlay.className = 'camera-overlay';
-    video.parentNode.appendChild(faceDetectionOverlay);
-
-// Initialize camera when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Enhanced camera compatibility checks
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showError('Your browser does not support camera access. Please use a modern browser like Chrome, Firefox, or Safari.');
-        return;
-    }
-
-    // Check for HTTPS requirement with better messaging
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && 
-        location.hostname !== '127.0.0.1' && !location.hostname.includes('replit')) {
-        showError('Camera access requires HTTPS. Please use a secure connection or localhost.');
-        return;
-    }
-
-    // Enhanced permission check with better error handling
-    if (navigator.permissions) {
-        navigator.permissions.query({name: 'camera'}).then(function(result) {
-            if (result.state === 'denied') {
-                showError('Camera permission denied. Please enable camera access in your browser settings and refresh the page.');
-                return;
-            }
-            
-            // Check if camera devices are available
-            navigator.mediaDevices.enumerateDevices()
-                .then(function(devices) {
-                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                    if (videoDevices.length === 0) {
-                        showError('No camera found. Please connect a camera and refresh the page.');
-                        return;
-                    }
-                    updateStatus('scanning', 'Camera ready - Click "Start Camera" to begin');
-                })
-                .catch(function(err) {
-                    console.error('Error enumerating devices:', err);
-                    updateStatus('scanning', 'Click "Start Camera" to begin');
-                });
-        }).catch(function(err) {
-            console.error('Error checking permissions:', err);
-            updateStatus('scanning', 'Click "Start Camera" to begin');
-        });
-    } else {
-        // Fallback for browsers without permissions API
-        updateStatus('scanning', 'Click "Start Camera" to begin');
-    }
-});
-
-// Real-time face detection
-        function startRealTimeFaceDetection() {
-            if (!video.videoWidth || !video.videoHeight) {
-                setTimeout(startRealTimeFaceDetection, 100);
-                return;
-            }
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            let detectionRunning = false;
-            let consecutiveErrors = 0;
-            const maxErrors = 5;
-
-            function detectFaces() {
-                if (detectionRunning || isProcessing) {
-                    requestAnimationFrame(detectFaces);
-                    return;
-                }
-
-                if (video.videoWidth === 0 || video.videoHeight === 0 || video.paused || video.ended) {
-                    requestAnimationFrame(detectFaces);
-                    return;
-                }
-
-                // Stop if too many consecutive errors
-                if (consecutiveErrors >= maxErrors) {
-                    updateStatus('error', 'Detection failed - Try restarting camera');
-                    return;
-                }
-
-                detectionRunning = true;
-
-                try {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0);
-
-                    // Send frame to server for real-time face detection
-                    const imageData = canvas.toDataURL('image/jpeg', 0.6);
-
-                    fetch('/detect_face_realtime', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            image: imageData
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        detectionRunning = false;
-                        consecutiveErrors = 0; // Reset error counter on success
-
-                        if (data.face_detected) {
-                            updateStatus('detected', 'Face detected - Ready to capture');
-                            captureBtn.disabled = false;
-                            captureBtn.classList.remove('opacity-50');
-                            faceDetectionOverlay.style.borderColor = '#10B981';
-                            faceDetectionOverlay.innerHTML = '<div class="absolute inset-0 flex items-center justify-center"><div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">✓ Face Detected - Click to Mark</div></div>';
-
-                            // Add face detection rectangle if coordinates provided
-                            if (data.face_coords) {
-                                drawFaceRectangle(data.face_coords);
-                            }
-                        } else {
-                            updateStatus('scanning', data.message || 'Looking for face...');
-                            captureBtn.disabled = true;
-                            captureBtn.classList.add('opacity-50');
-                            faceDetectionOverlay.style.borderColor = '#F59E0B';
-                            faceDetectionOverlay.innerHTML = '<div class="absolute inset-0 flex items-center justify-center"><div class="bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg">👤 Position your face properly</div></div>';
-                        }
-                    })
-                    .catch(error => {
-                        detectionRunning = false;
-                        consecutiveErrors++;
-                        console.error('Face detection error:', error);
-                        
-                        // Show user-friendly error after multiple failures
-                        if (consecutiveErrors >= 3) {
-                            updateStatus('error', 'Detection issues - Check connection');
-                            captureBtn.disabled = true;
-                            captureBtn.classList.add('opacity-50');
-                        } else {
-                            updateStatus('scanning', 'Looking for face...');
-                            captureBtn.disabled = true;
-                            captureBtn.classList.add('opacity-50');
-                        }
-                    });
-
-                } catch (error) {
-                    detectionRunning = false;
-                    consecutiveErrors++;
-                    console.error('Detection frame error:', error);
-                }
-
-                // Continue detection loop
-                if (!isProcessing && consecutiveErrors < maxErrors) {
-                    setTimeout(() => requestAnimationFrame(detectFaces), 300); // Slightly slower for stability
-                }
-            }
-
-            detectFaces();
-        }
-
-        // Draw face detection rectangle
-        function drawFaceRectangle(coords) {
-            const overlay = document.createElement('div');
-            overlay.className = 'absolute border-2 border-green-400 bg-green-400 bg-opacity-20';
-            overlay.style.left = `${coords.x}%`;
-            overlay.style.top = `${coords.y}%`;
-            overlay.style.width = `${coords.width}%`;
-            overlay.style.height = `${coords.height}%`;
-
-            faceDetectionOverlay.appendChild(overlay);
-
-            // Remove after 500ms
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-            }, 500);
-        }
-
-// Start camera with enhanced error handling
-startBtn.addEventListener('click', async function() {
-    startBtn.disabled = true;
-    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Starting Camera...';
-    
-    try {
-        // Try multiple camera configurations for better compatibility
-        let cameraConfigs = [
-            // High quality config
-            {
-                video: {
-                    width: { ideal: 1280, min: 640 },
-                    height: { ideal: 720, min: 480 },
-                    facingMode: 'user',
-                    frameRate: { ideal: 30, min: 15 }
-                }
-            },
-            // Medium quality config
-            {
-                video: {
-                    width: { ideal: 640, min: 320 },
-                    height: { ideal: 480, min: 240 },
-                    facingMode: 'user',
-                    frameRate: { ideal: 25, min: 10 }
-                }
-            },
-            // Basic config
-            {
-                video: {
-                    facingMode: 'user'
-                }
-            },
-            // Fallback config
-            {
-                video: true
-            }
-        ];
-        
-        let stream = null;
-        let lastError = null;
-        
-        for (let config of cameraConfigs) {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia(config);
-                break;
-            } catch (err) {
-                lastError = err;
-                console.warn('Camera config failed, trying next:', err);
-            }
-        }
-        
-        if (!stream) {
-            throw lastError || new Error('All camera configurations failed');
-        }
-        
-        video.srcObject = stream;
-        window.currentStream = stream;
-
-        // Enhanced video ready handling
-        const setupVideo = () => {
-            if (video.readyState >= 2) { // HAVE_CURRENT_DATA
-                startBtn.classList.add('hidden');
-                captureBtn.classList.remove('hidden');
-                stopBtn.classList.remove('hidden');
-
-                updateStatus('scanning', 'Camera ready - Looking for face...');
-                showMessage('success', 'Camera started successfully! Position your face in the center of the frame.');
-
-                // Start real-time face detection with delay for stability
-                setTimeout(() => {
-                    startRealTimeFaceDetection();
-                }, 1000);
-            } else {
-                setTimeout(setupVideo, 100);
-            }
-        };
-
-        video.onloadedmetadata = setupVideo;
-        video.oncanplay = setupVideo;
-
-        video.onerror = function(e) {
-            console.error('Video error:', e);
-            throw new Error('Video playback failed: ' + (e.message || 'Unknown video error'));
-        };
-
-    } catch (err) {
-        console.error('Camera error:', err);
-        
-        startBtn.disabled = false;
-        startBtn.innerHTML = '<i class="fas fa-video mr-2"></i>Start Camera';
-        
-        let errorMessage = 'Camera access failed: ';
-        let suggestions = [];
-        
-        if (err.name === 'NotAllowedError') {
-            errorMessage += 'Camera permission denied.';
-            suggestions = [
-                'Click the camera icon in your browser address bar',
-                'Allow camera access for this site',
-                'Refresh the page and try again'
-            ];
-        } else if (err.name === 'NotFoundError') {
-            errorMessage += 'No camera device found.';
-            suggestions = [
-                'Connect a camera to your device',
-                'Check if camera is properly connected',
-                'Try restarting your browser'
-            ];
-        } else if (err.name === 'NotReadableError') {
-            errorMessage += 'Camera is busy or being used by another application.';
-            suggestions = [
-                'Close other applications using camera (Zoom, Skype, etc.)',
-                'Restart your browser',
-                'Restart your device if problem persists'
-            ];
-        } else if (err.name === 'OverconstrainedError') {
-            errorMessage += 'Camera constraints not supported.';
-            suggestions = [
-                'Your camera may not support the required resolution',
-                'Try using a different browser',
-                'Update your camera drivers'
-            ];
-        } else {
-            errorMessage += err.message || 'Unknown error occurred.';
-            suggestions = [
-                'Ensure you are using HTTPS or localhost',
-                'Try refreshing the page',
-                'Use a modern browser (Chrome, Firefox, Safari)',
-                'Check your camera permissions in browser settings'
-            ];
-        }
-        
-        updateStatus('error', 'Camera failed');
-        
-        let suggestionsList = suggestions.map(s => `<li class="text-sm">• ${s}</li>`).join('');
-        showMessage('error', errorMessage + '<br><br><strong>Try these solutions:</strong><ul class="mt-2">' + suggestionsList + '</ul>');
-    }
-});
-
-// Stop camera
-stopBtn.addEventListener('click', function() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-        stream = null;
-    }
-
-    startBtn.classList.remove('hidden');
-    captureBtn.classList.add('hidden');
-    stopBtn.classList.add('hidden');
-
-    updateStatus('scanning', 'Camera stopped');
-});
-
-// Capture and mark attendance
-captureBtn.addEventListener('click', function() {
-    if (isProcessing) {
-        showMessage('warning', 'Please wait, already processing...');
-        return;
-    }
-
-    isProcessing = true;
-
-    // Disable button during processing
-    captureBtn.disabled = true;
-    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
-
-    // Stop real-time detection during processing
-    if (faceDetectionInterval) {
-        clearInterval(faceDetectionInterval);
-    }
-
-    // Capture high-quality image
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-
-    // Convert to high-quality JPEG
-    let imageData = canvas.toDataURL('image/jpeg', 0.95);
-
-    updateStatus('scanning', 'Analyzing face...');
-
-    // Send to server for advanced face recognition
-    fetch('/process_attendance', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            image: imageData,
-            timestamp: new Date().toISOString()
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        isProcessing = false;
-        captureBtn.disabled = false;
-        captureBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Capture & Mark';
-
-        if (data.success) {
-            updateStatus('detected', 'Success!');
-            showAdvancedSuccessMessage(data);
-
-            // Stop camera after success
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-            }
-
-            // Redirect with celebration
-            setTimeout(() => {
-                window.location.href = '/student_dashboard';
-            }, 4000);
-        } else {
-            updateStatus('error', 'Failed');
-            showAdvancedErrorMessage(data);
-
-            // Restart face detection
-            setTimeout(() => {
-                startRealTimeFaceDetection();
-            }, 2000);
-        }
-    })
-    .catch(error => {
-        isProcessing = false;
-        captureBtn.disabled = false;
-        captureBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Capture & Mark';
-
-        updateStatus('error', 'Network Error');
-        showMessage('error', 'Network error: ' + error.message + '. Please check your connection and try again.');
-
-        // Restart face detection
-        setTimeout(() => {
-            startRealTimeFaceDetection();
-        }, 2000);
-    });
-});
-
-function updateStatus(type, message) {
-    statusIndicator.className = `status-indicator status-${type}`;
-    statusIndicator.innerHTML = `<i class="fas fa-${type === 'scanning' ? 'search' : type === 'detected' ? 'check' : 'times'} me-2"></i>${message}`;
-}
-
-function showError(message) {
-    showMessage('error', message);
-}
-
-function showMessage(type, message) {
-    let bgColor = type === 'success' ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400';
-    let textColor = type === 'success' ? 'text-green-700' : 'text-red-700';
-    let iconColor = type === 'success' ? 'text-green-400' : 'text-red-400';
-    let icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
-
-    messageArea.innerHTML = `
-        <div class="mb-4 p-4 rounded-lg border-l-4 ${bgColor} relative">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-${icon} ${iconColor}"></i>
+        <!-- Main Attendance Card -->
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-8">
+                <!-- Instructions -->
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 mb-8">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-2">Instructions for Best Results</h3>
+                            <ul class="text-blue-800 space-y-1 text-sm">
+                                <li><i class="fas fa-check mr-2"></i>Ensure good lighting on your face</li>
+                                <li><i class="fas fa-check mr-2"></i>Look directly at the camera</li>
+                                <li><i class="fas fa-check mr-2"></i>Remove any face coverings if possible</li>
+                                <li><i class="fas fa-check mr-2"></i>Keep your face centered in the frame</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="ml-3">
-                    <p class="text-sm font-medium ${textColor}">${message}</p>
+
+                <!-- Camera Section -->
+                <div class="text-center mb-8">
+                    <div id="camera-container" class="relative inline-block bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+                        <video id="video" width="640" height="480" autoplay muted class="bg-gray-800"></video>
+                        <canvas id="canvas" width="640" height="480" class="hidden"></canvas>
+
+                        <!-- Camera Overlay -->
+                        <div id="camera-overlay" class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-white text-center">
+                                <i class="fas fa-video text-6xl mb-4 opacity-50"></i>
+                                <p class="text-xl font-semibold">Click "Start Camera" to begin</p>
+                            </div>
+                        </div>
+
+                        <!-- Face Detection Frame -->
+                        <div id="face-frame" class="absolute hidden border-4 border-green-400 rounded-lg">
+                            <div class="absolute -top-6 left-0 bg-green-400 text-white px-2 py-1 rounded text-sm font-semibold">
+                                Face Detected
+                            </div>
+                        </div>
+
+                        <!-- Processing Indicator -->
+                        <div id="processing-indicator" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden">
+                            <div class="text-white text-center">
+                                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                                <p class="text-lg font-semibold">Processing...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="ml-auto pl-3">
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()"
-                            class="inline-flex ${iconColor} hover:${iconColor.replace('400', '600')} focus:outline-none">
-                        <i class="fas fa-times"></i>
+
+                <!-- Camera Controls -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                    <button id="start-camera-btn" class="btn-primary text-lg py-4 px-8">
+                        <i class="fas fa-video mr-2"></i>Start Camera
+                    </button>
+                    <button id="capture-btn" class="btn-secondary text-lg py-4 px-8 hidden">
+                        <i class="fas fa-camera mr-2"></i>Capture & Mark Attendance
+                    </button>
+                    <button id="retry-btn" class="btn-outline text-lg py-4 px-8 hidden">
+                        <i class="fas fa-redo mr-2"></i>Try Again
                     </button>
                 </div>
-            </div>
-        </div>
-    `;
-}
 
-function showAdvancedSuccessMessage(data) {
-    let details = data.details || {};
+                <!-- Status Messages -->
+                <div id="status-container" class="space-y-4">
+                    <!-- Success Message -->
+                    <div id="success-message" class="hidden bg-green-50 border border-green-200 rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-green-900">Attendance Marked Successfully!</h3>
+                                <p class="text-green-800 mt-1">Your attendance has been recorded for today.</p>
+                                <div id="confidence-score" class="mt-2 text-sm text-green-700"></div>
+                            </div>
+                        </div>
+                    </div>
 
-    messageArea.innerHTML = `
-        <div class="mb-4 p-6 rounded-2xl border-l-4 bg-gradient-to-r from-green-50 to-emerald-50 border-green-400 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-green-100 rounded-full -mr-16 -mt-16 opacity-20"></div>
-            <div class="relative">
-                <div class="flex items-center mb-4">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+                    <!-- Error Message -->
+                    <div id="error-message" class="hidden bg-red-50 border border-red-200 rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-red-900">Verification Failed</h3>
+                                <p id="error-text" class="text-red-800 mt-1">Please try again with better lighting.</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="ml-4">
-                        <h3 class="text-xl font-bold text-green-800">🎉 Attendance Marked Successfully!</h3>
-                        <p class="text-green-700">${data.message}</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div class="bg-white p-3 rounded-lg border border-green-200">
-                        <p class="text-xs text-gray-600">Student</p>
-                        <p class="font-semibold text-green-800">${details.student_name || 'N/A'}</p>
-                    </div>
-                    <div class="bg-white p-3 rounded-lg border border-green-200">
-                        <p class="text-xs text-gray-600">Time</p>
-                        <p class="font-semibold text-green-800">${details.time_marked || 'N/A'}</p>
-                    </div>
-                    <div class="bg-white p-3 rounded-lg border border-green-200">
-                        <p class="text-xs text-gray-600">Match Score</p>
-                        <p class="font-semibold text-green-800">${Math.round((details.similarity_score || 0) * 100)}%</p>
-                    </div>
-                    <div class="bg-white p-3 rounded-lg border border-green-200">
-                        <p class="text-xs text-gray-600">Attendance</p>
-                        <p class="font-semibold text-green-800">${details.attendance_percentage || 0}%</p>
-                    </div>
-                </div>
-                <div class="mt-4 text-center">
-                    <p class="text-green-700 font-medium">Redirecting to dashboard in 4 seconds...</p>
-                </div>
-            </div>
-        </div>
-    `;
-}
 
-function showAdvancedErrorMessage(data) {
-    let details = data.details || {};
-    let suggestions = details.suggestions || [];
-
-    let suggestionsList = suggestions.map(s => `<li class="flex items-center"><i class="fas fa-arrow-right mr-2 text-red-400"></i>${s}</li>`).join('');
-
-    messageArea.innerHTML = `
-        <div class="mb-4 p-6 rounded-2xl border-l-4 bg-gradient-to-r from-red-50 to-pink-50 border-red-400 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-red-100 rounded-full -mr-16 -mt-16 opacity-20"></div>
-            <div class="relative">
-                <div class="flex items-center mb-4">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="text-xl font-bold text-red-800">Recognition Failed</h3>
-                        <p class="text-red-700">${data.message}</p>
-                        <p class="text-sm text-red-600 mt-1">Error Code: ${data.error_code || 'UNKNOWN'}</p>
+                    <!-- Loading Message -->
+                    <div id="loading-message" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-blue-900">Processing Face Recognition</h3>
+                                <p class="text-blue-800 mt-1">Please wait while we verify your identity...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                ${details.similarity_score ? `
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-white p-3 rounded-lg border border-red-200">
-                        <p class="text-xs text-gray-600">Match Score</p>
-                        <p class="font-semibold text-red-800">${Math.round(details.similarity_score * 100)}%</p>
-                    </div>
-                    <div class="bg-white p-3 rounded-lg border border-red-200">
-                        <p class="text-xs text-gray-600">Required</p>
-                        <p class="font-semibold text-red-800">${Math.round((details.required_similarity || 0.6) * 100)}%</p>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${suggestions.length > 0 ? `
-                <div class="bg-white p-4 rounded-lg border border-red-200">
-                    <h4 class="font-semibold text-red-800 mb-2">💡 Suggestions:</h4>
-                    <ul class="text-sm text-red-700 space-y-1">
-                        ${suggestionsList}
-                    </ul>
-                </div>
-                ` : ''}
-
-                <div class="mt-4 text-center">
-                    <p class="text-red-700 font-medium">Please try again with the suggestions above.</p>
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                    <a href="{{ url_for('student_dashboard') }}" class="btn-outline text-lg py-4 px-8 text-center">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                    <a href="{{ url_for('view_attendance') }}" class="btn-outline text-lg py-4 px-8 text-center">
+                        <i class="fas fa-list mr-2"></i>View Records
+                    </a>
                 </div>
             </div>
         </div>
-    `;
+
+        <!-- Tips Section -->
+        <div class="mt-8 bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                Tips for Better Recognition
+            </h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                        <i class="fas fa-sun text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Good Lighting</h4>
+                        <p class="text-gray-600 text-sm">Make sure your face is well-lit, preferably with natural light</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                        <i class="fas fa-eye text-green-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Direct Gaze</h4>
+                        <p class="text-gray-600 text-sm">Look directly at the camera for best results</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                        <i class="fas fa-mobile-alt text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Stable Position</h4>
+                        <p class="text-gray-600 text-sm">Hold your device steady for a clear image</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                        <i class="fas fa-user-circle text-orange-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900">Clear View</h4>
+                        <p class="text-gray-600 text-sm">Ensure no obstructions are covering your face</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAttendanceSystem();
+});
+
+function initializeAttendanceSystem() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const startCameraBtn = document.getElementById('start-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const retryBtn = document.getElementById('retry-btn');
+    const cameraOverlay = document.getElementById('camera-overlay');
+    const faceFrame = document.getElementById('face-frame');
+    const processingIndicator = document.getElementById('processing-indicator');
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+    const loadingMessage = document.getElementById('loading-message');
+    const errorText = document.getElementById('error-text');
+    const confidenceScore = document.getElementById('confidence-score');
+
+    let stream = null;
+    let faceDetected = false;
+    let isProcessing = false;
+
+    // Camera initialization
+    async function startCamera() {
+        try {
+            startCameraBtn.disabled = true;
+            startCameraBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Starting Camera...';
+
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: 640, 
+                    height: 480,
+                    facingMode: 'user'
+                } 
+            });
+            
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                video.play();
+                cameraOverlay.classList.add('hidden');
+                startCameraBtn.classList.add('hidden');
+                captureBtn.classList.remove('hidden');
+                retryBtn.classList.remove('hidden');
+                
+                // Start face detection
+                startFaceDetection();
+            };
+        } catch (error) {
+            console.error('Camera error:', error);
+            showErrorMessage('Camera access denied or not available. Please check your camera permissions.');
+            startCameraBtn.disabled = false;
+            startCameraBtn.innerHTML = '<i class="fas fa-video mr-2"></i>Start Camera';
+        }
+    }
+
+    function startFaceDetection() {
+        const detectFace = () => {
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                // Simple face detection indicator
+                faceFrame.classList.remove('hidden');
+                faceDetected = true;
+            }
+            if (!isProcessing) {
+                requestAnimationFrame(detectFace);
+            }
+        };
+        detectFace();
+    }
+
+    async function captureAndMarkAttendance() {
+        if (isProcessing) return;
+        
+        isProcessing = true;
+        
+        try {
+            captureBtn.disabled = true;
+            captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+            
+            showLoadingMessage();
+            processingIndicator.classList.remove('hidden');
+            
+            // Capture photo
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            // Convert to base64
+            const photoData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Send for processing
+            const response = await fetch('/process_attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    photo_data: photoData
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showSuccessMessage(result.message, result.confidence);
+                captureBtn.classList.add('hidden');
+                retryBtn.innerHTML = '<i class="fas fa-home mr-2"></i>Go to Dashboard';
+                retryBtn.onclick = () => window.location.href = '/student_dashboard';
+                
+                // Auto-redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '/student_dashboard';
+                }, 3000);
+            } else {
+                showErrorMessage(result.message);
+                captureBtn.disabled = false;
+                captureBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Capture & Mark Attendance';
+            }
+            
+        } catch (error) {
+            console.error('Attendance marking failed:', error);
+            showErrorMessage('Network error. Please check your connection and try again.');
+            captureBtn.disabled = false;
+            captureBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Capture & Mark Attendance';
+        } finally {
+            isProcessing = false;
+            processingIndicator.classList.add('hidden');
+            hideLoadingMessage();
+        }
+    }
+
+    function showSuccessMessage(message, confidence) {
+        hideAllMessages();
+        successMessage.classList.remove('hidden');
+        successMessage.querySelector('p').textContent = message;
+        if (confidence) {
+            confidenceScore.textContent = `Confidence: ${Math.round(confidence * 100)}%`;
+        }
+    }
+
+    function showErrorMessage(message) {
+        hideAllMessages();
+        errorMessage.classList.remove('hidden');
+        errorText.textContent = message;
+    }
+
+    function showLoadingMessage() {
+        hideAllMessages();
+        loadingMessage.classList.remove('hidden');
+    }
+
+    function hideLoadingMessage() {
+        loadingMessage.classList.add('hidden');
+    }
+
+    function hideAllMessages() {
+        successMessage.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+        loadingMessage.classList.add('hidden');
+    }
+
+    function resetCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        
+        cameraOverlay.classList.remove('hidden');
+        startCameraBtn.classList.remove('hidden');
+        captureBtn.classList.add('hidden');
+        retryBtn.classList.add('hidden');
+        faceFrame.classList.add('hidden');
+        processingIndicator.classList.add('hidden');
+        
+        startCameraBtn.disabled = false;
+        startCameraBtn.innerHTML = '<i class="fas fa-video mr-2"></i>Start Camera';
+        captureBtn.disabled = false;
+        captureBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Capture & Mark Attendance';
+        
+        hideAllMessages();
+        isProcessing = false;
+    }
+
+    // Event listeners
+    startCameraBtn.addEventListener('click', startCamera);
+    captureBtn.addEventListener('click', captureAndMarkAttendance);
+    retryBtn.addEventListener('click', resetCamera);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
 }
 </script>
 {% endblock %}
