@@ -19,6 +19,52 @@ A clean and simple web-based attendance system using face recognition technology
 - **Database**: SQLite
 - **Camera**: WebRTC API for live camera access
 
+
+# Screenshot of Project
+
+<details>
+  <summary>Click to see Screenshots</summary>
+
+---
+---
+# Home page
+![image](https://github.com/user-attachments/assets/67b58828-191c-4f85-87d4-b8341cd2968f)
+
+---
+
+# Student Registration
+![image](https://github.com/user-attachments/assets/65f9f26b-0c2e-4767-b76f-73547e696c27)
+
+---
+![image](https://github.com/user-attachments/assets/9567963f-912b-4a4a-ace8-f4e44148ad02)
+
+
+---
+# Students dashboard
+
+![image](https://github.com/user-attachments/assets/7cbfce11-cefd-4162-8f6c-697960f58b18)
+
+# Attendance Records
+![image](https://github.com/user-attachments/assets/a1351fc8-a175-46a2-90a5-d4d1990d763c)
+
+
+
+# Teacher Dashboard
+![image](https://github.com/user-attachments/assets/1437f8e2-7540-4614-9929-ec55a88cc953)
+
+# Teacher Attendance Records
+![image](https://github.com/user-attachments/assets/5e0d15f0-9f89-4873-870f-6b2d4fdbd59d)
+![image](https://github.com/user-attachments/assets/ee1cadf1-d816-4c5f-9465-6800520a80d3)
+
+
+
+  
+</details>
+
+
+
+
+
 ## Installation
 
 1. Create virtual environment:
