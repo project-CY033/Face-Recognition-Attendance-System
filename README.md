@@ -63,6 +63,8 @@ A clean and simple web-based attendance system using face recognition technology
 
 
 
+---
+---
 
 
 ## Installation
